@@ -18,6 +18,7 @@ class Master:
         self.URL = URL
         self.userQueue = queue.Queue()
 
+
     def start(self):
         try:
             requests.get(f"{self.URL}/start", timeout=3)
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     url = os.getenv("URL")
     print(url)
     if url is None:
-        url = "http://0.0.0.0:8080" #local mode
+        url = "http://192.168.64.128:8080" #local mode
     master = Master(url,1,1)
     master.prepare_queue()
     master.process()
