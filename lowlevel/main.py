@@ -1,3 +1,4 @@
+import platform
 import lowlevel.xhs2 as xhs  
 from selenium import webdriver
 from selenium. webdriver.common.by import By
@@ -23,8 +24,10 @@ def prepare_driver(cookies,workers,headless = True):
     drivers = []
     options = webdriver.ChromeOptions()
     options.add_argument('disable-blink-features=AutomationControlled')
-    service = Service(executable_path= '/usr/bin/chromedriver.exe')
-
+    if sys.platform == 'linux':
+        service = Service(executable_path= '/usr/bin/chromedriver.exe')
+    elif sys.platform == 'darwin':
+        service = Service(executable_path='lowlevel/chromedriver-mac-arm64/chromedriver')
     if headless:
         options.add_argument('headless')
     
@@ -40,6 +43,20 @@ def prepare_driver(cookies,workers,headless = True):
         driver.refresh()
         drivers.append(driver)
     return drivers
+def Producer(driver,userQueue):
+    xhs.wait_for_page(driver,'note-item')
+    if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(driver.current_url):
+        driver.get(url)
+    elements= driver.find_elements(By.CLASS_NAME,'author-wrapper')
+    try:
+        linklist=[(element.find_element(By.TAG_NAME,'a')).get_attribute('href') for element in elements]
+    except:
+        driver.refresh()
+    lastelement = elements[-1]
+    linklist = list(set(linklist))
+    for link in linklist:
+        userQueue.put(link)
+    driver.execute_script("arguments[0].scrollIntoView();",lastelement)
 
 def Finder(driver,userlink):
     try:
