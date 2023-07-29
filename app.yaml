@@ -1,5 +1,5 @@
 runtime: python311
-entrypoint: python3 test.py
+entrypoint: gunicorn -b :$PORT test:app --timeout 36000 --preload
 env_variables:
   BUCKET: scraper-394300.appspot.com #gcloud bucket where you want to store the outputs
   CLOUD: True #env variable which says whether the Slave is running locally or in the cloud

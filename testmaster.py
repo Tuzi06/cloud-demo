@@ -65,6 +65,7 @@ class Master(GCloudConnection):
 if __name__ == "__main__":
     url = os.getenv("URL")
     if url is None:
-        url = "http://0.0.0.0:5000" #local mode
+        url = "http://0.0.0.0:8081" #local mode
+    print(url)
     master = Master(url)
     master.process()
