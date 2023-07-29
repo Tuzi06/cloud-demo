@@ -43,6 +43,7 @@ def prepare_driver(cookies,workers,headless = True):
         driver.refresh()
         drivers.append(driver)
     return drivers
+
 def Producer(driver,userQueue):
     xhs.wait_for_page(driver,'note-item')
     if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(driver.current_url):

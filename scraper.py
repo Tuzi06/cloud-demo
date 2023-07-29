@@ -1,7 +1,6 @@
 from flask import Flask,request,jsonify
 import os,logging,time,pickle,queue,requests,json 
 from multiprocessing import Process,Pipe
-from threading import Thread
 from lowlevel import main
 class Scraper:
     def __init__(self,url,reqNum) -> None:
@@ -49,8 +48,8 @@ app = Flask(__name__)
 
 @app.route('/start')
 def start_child_process(): #Gunicorn does not allow the creation of new processes before the app creation, so we need to define this route
-    # url = os.getenv("BUCKET")
-    url = '192.168.64.128'
+    url = os.getenv("BUCKET")
+    # url = '192.168.64.128'
     global scraper
     scraper = Scraper(url,100)
     p = Process(target=scraper.run, args=[scraper.child])
@@ -61,7 +60,7 @@ def start_child_process(): #Gunicorn does not allow the creation of new processe
 
 @app.route('/job')
 def process_job():
-    scraper.parent.send(request.args) #sends a job to the Scraper through the "parent" end of the pipe
+    scraper.parent.send('scraping-detected') #sends a job to the Scraper through the "parent" end of the pipe
     
 @app.route('/download')
 def store_posts():

@@ -1,0 +1,8 @@
+runtime: python311
+entrypoint: python3 test.py
+env_variables:
+  BUCKET: scraper-394300.appspot.com #gcloud bucket where you want to store the outputs
+  CLOUD: True #env variable which says whether the Slave is running locally or in the cloud
+instance_class: B2  #Bs are basic instances without automatic scaling. Necessary to restart them manually
+manual_scaling:
+  instances: 1      #Number of instances must be defined
