@@ -12,7 +12,7 @@ class Master(GCloudConnection):
 
     def start(self):
         try:
-            requests.get(f"{self.URL}/start", timeout=300)
+            print(requests.get(f"{self.URL}/start", timeout=300).content)
         except Exception:
             print("Scraper not running")
 
@@ -46,6 +46,7 @@ class Master(GCloudConnection):
         state = ''
         while state != 'done':
             state = self.checkState()
+            print(state)
             next_job_ready = False # wont change if state == "busy" or "no-answer"
             if state == "not-started":
                 self.start()
@@ -63,7 +64,7 @@ class Master(GCloudConnection):
             time.sleep(1)
 
 if __name__ == "__main__":
-    url = os.getenv("URL")
+    url = 'http://scraper-394300.uc.r.appspot.com'
     if url is None:
         url = "http://0.0.0.0:8081" #local mode
     print(url)

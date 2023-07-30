@@ -6,11 +6,11 @@ from multiprocessing import Process,Pipe
 from utls import GCloudConnection
 
 class Scraper(GCloudConnection):
-    def __init__(self,URL):
-        GCloudConnection.__init__(self,URL,LOG_NAME='scrapper')
+    def __init__(self):
         self.state = 'idle'
         self.parent,self.child = Pipe()
-        self.driver = Chrome(options=ChromeOptions())
+        self.driver = Chrome(Servive = Service('./lowlevel/chromedriver_linux64/chromedriver'),options=ChromeOptions())
+
     def run(self,pipe):
         self.child = pipe
         for _ in range(1000):
@@ -20,9 +20,9 @@ app = Flask(__name__)
 
 @app.route('/start')
 def start_child_process(): #Gunicorn does not allow the creation of new processes before the app creation, so we need to define this route
-    url = os.getenv("BUCKET")
+
     global scraper
-    scraper = Scraper(url)
+    scraper = Scraper()
     p = Process(target = scraper.run(),args = scraper.child)
     print('scraper running')
     return "Scraper running"
