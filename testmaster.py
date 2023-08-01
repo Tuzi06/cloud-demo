@@ -4,9 +4,8 @@ from utls import GCloudConnection
 
 
 url = 'https://www.xiaohongshu.com/explore'
-class Master(GCloudConnection):
+class Master():
     def __init__(self,URL):
-        GCloudConnection.__init__(self,URL,LOG_NAME='master-scrapper')
         self.URL = URL
         self.restarting = False
 
@@ -18,7 +17,7 @@ class Master(GCloudConnection):
 
     def checkState(self):
         try:
-            response = requests.get(f"{self.URL}/state", timeout=10000)
+            response = requests.get(f"{self.URL}/state", timeout=3)
             # print(f"{self.URL}")
             state = response.content.decode("utf-8")
         except Exception:
@@ -64,7 +63,7 @@ class Master(GCloudConnection):
             time.sleep(1)
 
 if __name__ == "__main__":
-    url = 'http://scraper-394300.uc.r.appspot.com'
+    url = 'http://172.17.0.2:80'
     if url is None:
         url = "http://0.0.0.0:8081" #local mode
     print(url)

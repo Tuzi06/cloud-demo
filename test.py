@@ -9,7 +9,7 @@ class Scraper(GCloudConnection):
     def __init__(self):
         self.state = 'idle'
         self.parent,self.child = Pipe()
-        self.driver = Chrome(Servive = Service('./lowlevel/chromedriver_linux64/chromedriver'),options=ChromeOptions())
+        self.driver = Chrome(Service = Service('./lowlevel/chromedriver_linux64/chromedriver'),options=ChromeOptions())
 
     def run(self,pipe):
         self.child = pipe
@@ -40,6 +40,14 @@ def current_state():
         return scraper.state
     except:
         return "not-started"
+@app.route('/kill')
+def kill():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return "Shutting down..."
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 80))
+    app.run(debug=True, host='0.0.0.0', port=port)
