@@ -6,4 +6,4 @@ google-cloud-storage
 gunicorn
 gcsfs
 pexpect
-selenium
+selenium==4.10.0

@@ -4,13 +4,18 @@ from flask import Flask,request
 import os,time
 from multiprocessing import Process,Pipe
 from utls import GCloudConnection
+from selenium import webdriver
+
 
 class Scraper(GCloudConnection):
     def __init__(self):
         self.state = 'idle'
         self.parent,self.child = Pipe()
-        self.driver = Chrome(Service = Service('./lowlevel/chromedriver_linux64/chromedriver'),options=ChromeOptions())
-
+        options = ChromeOptions()
+        options.add_argument('--ignore-ssl-errors=yes')
+        options.add_argument('--ignore-certificate-errors')
+        self.driver = webdriver.Remote(command_executor='http://172.17.0.2:4444',options=options)
+    
     def run(self,pipe):
         self.child = pipe
         for _ in range(1000):
@@ -23,7 +28,8 @@ def start_child_process(): #Gunicorn does not allow the creation of new processe
 
     global scraper
     scraper = Scraper()
-    p = Process(target = scraper.run(),args = scraper.child)
+    p = Process(target = scraper.run,args = [scraper.child])
+    p.start()
     print('scraper running')
     return "Scraper running"
 
@@ -50,4 +56,4 @@ def kill():
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 80))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=False, host='0.0.0.0', port=port)
