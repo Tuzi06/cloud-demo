@@ -89,6 +89,7 @@ if __name__ == "__main__":
     url = os.getenv("URL")
     print(url)
     if url is None:
-        url = "http://scraper-394300.uc.r.appspot.com" #local mode
+        url = 'http://192.168.1.67:5000'
+        # url = "https://scraper-394300.uc.r.appspot.com" #local mode
     master = Master(url)
     master.process()

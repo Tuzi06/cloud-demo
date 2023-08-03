@@ -20,6 +20,7 @@ class Scraper:
                 return shortCodes  
             else:
                 self.child.send('scraping-detected')
+                return
 
 
 app = Flask(__name__)
@@ -34,7 +35,7 @@ def start_child_process(): #Gunicorn does not allow the creation of new processe
 @app.route('/job')
 def process_job():
     scraper.parent.send(request.args)
-    shortCodes = scraper.run()
+    shortCodes = scraper.run(scraper.pipe)
     if shortCodes:
         return jsonify(result = shortCodes)
     
