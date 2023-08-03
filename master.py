@@ -12,7 +12,8 @@ class Master(GCloudConnection):
         GCloudConnection.__init__(self,URL,LOG_NAME='master-scrapper')
         self.URL = URL
         self.userQueue = queue.Queue()
-        self.producer = prepare_driver(pickle.load(open('lowlevel/xhs_cookies.pkl','rb')),1,False)
+        self.producer = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
+        self.producer.get('https://www.instagram.com/explore/search/keyword/?q=%s'%('tech'))
         self.userlog = []
         self.restarting = False
 
@@ -38,7 +39,8 @@ class Master(GCloudConnection):
             url = self.URL + "/job?" +urlencode({'url':job,'aaa':''})
             self.userlog.append(job)
             print(f"starting scraping job {job} at {self.URL}")
-            requests.get(url,timeout=10)
+            response = requests.get(url,timeout=10)
+            print(response.content)
     
     def restartNode(self):
         try:
@@ -69,7 +71,7 @@ class Master(GCloudConnection):
             elif state == "idle":
                 next_job_ready = True
                 if self.userQueue.empty():
-                    Producer(self.producer[0],self.userQueue)
+                    Producer(self.producer,self.userQueue)
             if next_job_ready:
                 self.sendJob()
             time.sleep(1)
@@ -87,6 +89,6 @@ if __name__ == "__main__":
     url = os.getenv("URL")
     print(url)
     if url is None:
-        url = "http://192.168.1.67:5000" #local mode
+        url = "http://scraper-394300.uc.r.appspot.com" #local mode
     master = Master(url)
     master.process()

@@ -3,64 +3,40 @@ import os,logging,time,pickle,queue,requests,json
 from multiprocessing import Process,Pipe
 from lowlevel import main
 class Scraper:
-    def __init__(self,url,reqNum) -> None:
+    def __init__(self) -> None:
         self.state = 'idle'
-        self.url = url
         self.parent, self.child = Pipe()
-        self.posts = []
-        self.reqNum = reqNum
-        try:
-            self.cookies = pickle.load(open('./lowlevel/xhs_cookies.pkl','rb'))
-        except:
-            self.cookies = main.init()
-            pickle.dump(self.cookies,open('./lowlevel/xhs_cookies.pkl','wb'))
-        self.finders = main.prepare_driver(self.cookies,1)
-        self.workers = main.prepare_driver([],1)
     
-    def store(self, df, filename):
-        bucket = self.URL  #define url to bucket where results are stored
-        url = f"gs://{bucket}/csv/{filename}" if "CLOUD" in os.environ else f"./csv/{filename}"
-        df.to_csv(url)
-        logging.info(f"{filename} stored succesfully")
-
     def run(self, pipe):
         self.child = pipe
-        while len(self.posts)<self.reqNum:
-            job = self.child.recv()
-            if job != None:
-                self.child.send('busy')
-                link,_ = job.values()
-                if requests.get(link).status_code == 200:
-                    # self.child.send("scraping-detected")
-                    # print('scraper detected by the server needs restart')
-                    # for driver in self.finders + self.workers:
-                    #     driver.quit()
-                    postInfos = main.Finder(self.finders[0],link) #{userinfo, list of post links}
-                    if postInfos:
-                        main.Worker(self.workers[0],postInfos,self.posts)
-            
-            self.child.send('idle')    
-        
-        self.child.send('done')
-        open('res.json','w').write(json.dumps(self.posts,ensure_ascii= False,indent=4))
+        job = self.child.recv()
+        if job != None:
+            self.child.send('busy')
+            link,_ = job.values()
+            response = requests.get(f"{link}?__a=1&d=dis")
+            if response.status_code == 200:  
+                shortCodes = [[node['node']['shortcode'] for node in response['graphql']['user']['edge_felix_video_timeline']['edges']]] 
+                self.child.send('idle')  
+                return shortCodes  
+            else:
+                self.child.send('scraping-detected')
+
 
 app = Flask(__name__)
 
 @app.route('/start')
 def start_child_process(): #Gunicorn does not allow the creation of new processes before the app creation, so we need to define this route
-    url = os.getenv("BUCKET")
-    # url = '192.168.64.128'
     global scraper
-    scraper = Scraper(url,100)
-    p = Process(target=scraper.run, args=[scraper.child])
-    p.start()
-    # logging.info("Scraper running")
-    print('scraper running')
+    scraper = Scraper()
+
     return "Scraper running"
 
 @app.route('/job')
 def process_job():
-    scraper.parent.send('scraping-detected') #sends a job to the Scraper through the "parent" end of the pipe
+    scraper.parent.send(request.args)
+    shortCodes = scraper.run()
+    if shortCodes:
+        return jsonify(result = shortCodes)
     
 @app.route('/download')
 def store_posts():

@@ -1,13 +1,12 @@
-import platform
-import lowlevel.xhs2 as xhs  
+import lowlevel.ins as ins  
 from selenium import webdriver
 from selenium. webdriver.common.by import By
 from threading import Thread
 from queue import Queue
-import sys,pickle,time,datetime,json
+import sys,pickle,time,datetime,json,random
 from selenium.webdriver.chrome.service import Service
 
-url = 'https://www.xiaohongshu.com/explore'
+url = 'https://www.instagram.com/explore'
 
 def init():
     soption = webdriver.ChromeOptions()
@@ -45,35 +44,32 @@ def prepare_driver(cookies,workers,headless = True):
     return drivers
 
 def Producer(driver,userQueue):
-    xhs.wait_for_page(driver,'note-item')
-    if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(driver.current_url):
-        driver.get(url)
-    elements= driver.find_elements(By.CLASS_NAME,'author-wrapper')
-    try:
-        linklist=[(element.find_element(By.TAG_NAME,'a')).get_attribute('href') for element in elements]
-    except:
-        driver.refresh()
-    lastelement = elements[-1]
-    linklist = list(set(linklist))
-    for link in linklist:
-        userQueue.put(link)
-    driver.execute_script("arguments[0].scrollIntoView();",lastelement)
+    input('adfads')
+    while userQueue.qsize()<2:
+        # print('https://www.instagram.com/explore/search/keyword/?q=%s%s'%(tag,random.choice(chartoken)))
+        ins.wait_for_page(driver,'x1gryazu')
+        containers = driver.find_elements(By.CLASS_NAME,'x1gryazu')
+        links = [container.find_element(By.TAG_NAME,'a').get_attribute('href') for container in containers]
+        random.shuffle(links)
+        for link in links:
+            userQueue.put({'link':link,'catigory':''})
+        driver.execute_script("arguments[0].scrollIntoView();",containers[-1])
+        # print( '\n now has %i posts \n'%(len(posts)))
+# def Finder(driver,userlink):
+#     try:
+#         driver.get(userlink)
+#         if ' https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(driver.current_url):
+#             driver.get(userlink)
+#         ins.wait_for_page(driver,'user-interactions')
+#         user = xhs.getUser(driver)
+#         user['userLink'] = userlink
+#         if 'W' in user['follow'] or '万' in user['follow']:
+#             return {'info':user,'post':xhs.getLinks(driver)}
+#     except:
+#         return 
 
-def Finder(driver,userlink):
-    try:
-        driver.get(userlink)
-        if ' https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(driver.current_url):
-            driver.get(userlink)
-        xhs.wait_for_page(driver,'user-interactions')
-        user = xhs.getUser(driver)
-        user['userLink'] = userlink
-        if 'W' in user['follow'] or '万' in user['follow']:
-            return {'info':user,'post':xhs.getLinks(driver)}
-    except:
-        return 
-
-def Worker(driver,postInfo,posts):
-    try:
-        xhs.run(driver,postInfo['post'],posts,postInfo['info'])
-    except:
-        return 
+# def Worker(driver,postInfo,posts):
+#     try:
+#         ins.run(driver,postInfo['post'],posts,postInfo['info'])
+#     except:
+#         return 

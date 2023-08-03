@@ -40,6 +40,7 @@ def process_job():
 
 @app.route('/state')
 def current_state():
+    return 'suceed reach out'
     try:
         if scraper.parent.poll(timeout=3): #checks if there are new messages from the child process
             scraper.state = scraper.parent.recv() # updates the state in such case
@@ -55,5 +56,5 @@ def kill():
     return "Shutting down..."
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 80))
+    port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
