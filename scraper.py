@@ -6,21 +6,23 @@ class Scraper:
     def __init__(self) -> None:
         self.state = 'idle'
         self.parent, self.child = Pipe()
+        self.codesQueue = queue.Queue()
     
     def run(self, pipe):
         self.child = pipe
-        job = self.child.recv()
-        if job != None:
-            self.child.send('busy')
-            link,_ = job.values()
-            response = requests.get(f"{link}?__a=1&d=dis")
-            if response.status_code == 200:  
-                shortCodes = [[node['node']['shortcode'] for node in response['graphql']['user']['edge_felix_video_timeline']['edges']]] 
-                self.child.send('idle')  
-                return shortCodes  
-            else:
-                self.child.send('scraping-detected')
-                return
+        while True:
+            job = self.child.recv()
+            if job != None:
+                self.child.send('busy')
+                link,_ = job.values()
+                response = requests.get(f"{link}?__a=1&d=dis")
+                if response.status_code == 200:  
+                    shortCodes = [[node['node']['shortcode'] for node in response['graphql']['user']['edge_felix_video_timeline']['edges']]] 
+                    self.child.send('idle')  
+                    self.codesQueue.put(shortCodes)
+                else:
+                    self.child.send('scraping-detected')
+                    return
 
 
 app = Flask(__name__)
@@ -29,13 +31,14 @@ app = Flask(__name__)
 def start_child_process(): #Gunicorn does not allow the creation of new processes before the app creation, so we need to define this route
     global scraper
     scraper = Scraper()
+    Process(target = scraper.run, args = [scraper.child])
 
     return "Scraper running"
 
 @app.route('/job')
 def process_job():
     scraper.parent.send(request.args)
-    shortCodes = scraper.run(scraper.pipe)
+    shortCodes = scraper.codesQueue.get()
     if shortCodes:
         return jsonify(result = shortCodes)
     
