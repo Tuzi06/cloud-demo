@@ -2,12 +2,12 @@ from flask import Flask,request,jsonify
 import os,logging,time,pickle,queue,requests,json 
 from multiprocessing import Process,Pipe
 from lowlevel import main
+
 class Scraper:
     def __init__(self) -> None:
         self.state = 'idle'
         self.parent, self.child = Pipe()
-        self.codesQueue = queue.Queue()
-    
+        self.send,self.recieve = Pipe()
     def run(self, pipe):
         self.child = pipe
         while True:
@@ -15,14 +15,16 @@ class Scraper:
             if job != None:
                 self.child.send('busy')
                 link,_ = job.values()
-                response = requests.get(f"{link}?__a=1&d=dis")
+                response = requests.get(f"{link}?__a=1&__d=dis")
                 if response.status_code == 200:  
-                    shortCodes = [[node['node']['shortcode'] for node in response['graphql']['user']['edge_felix_video_timeline']['edges']]] 
-                    self.child.send('idle')  
-                    self.codesQueue.put(shortCodes)
+                    shortCodes = [node['node']['shortcode'] for node in (json.loads(response.text))['graphql']['user']['edge_felix_video_timeline']['edges']]
+                    print(shortCodes)   
+                    self.send.send(shortCodes)
+                    print('done')
+                    self.child.send('idle')
+                   
                 else:
                     self.child.send('scraping-detected')
-                    return
 
 
 app = Flask(__name__)
@@ -31,14 +33,18 @@ app = Flask(__name__)
 def start_child_process(): #Gunicorn does not allow the creation of new processes before the app creation, so we need to define this route
     global scraper
     scraper = Scraper()
-    Process(target = scraper.run, args = [scraper.child])
-
+    Process(target = scraper.run, args = [scraper.child]).start()
     return "Scraper running"
 
 @app.route('/job')
 def process_job():
+    print(request.args)
     scraper.parent.send(request.args)
-    shortCodes = scraper.codesQueue.get()
+    while True:
+        shortCodes = scraper.recieve.recv()
+        if shortCodes != None:
+            break
+    print(shortCodes)
     if shortCodes:
         return jsonify(result = shortCodes)
     
