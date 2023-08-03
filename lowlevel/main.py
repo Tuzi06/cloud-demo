@@ -45,16 +45,20 @@ def prepare_driver(cookies,workers,headless = True):
 
 def Producer(driver,userQueue):
     input('adfads')
-    while userQueue.qsize()<2:
-        # print('https://www.instagram.com/explore/search/keyword/?q=%s%s'%(tag,random.choice(chartoken)))
-        ins.wait_for_page(driver,'x1gryazu')
-        containers = driver.find_elements(By.CLASS_NAME,'x1gryazu')
-        links = [container.find_element(By.TAG_NAME,'a').get_attribute('href') for container in containers]
-        random.shuffle(links)
-        for link in links:
-            userQueue.put({'link':link,'catigory':''})
-        driver.execute_script("arguments[0].scrollIntoView();",containers[-1])
+    # print('https://www.instagram.com/explore/search/keyword/?q=%s%s'%(tag,random.choice(chartoken)))
+    ins.wait_for_page(driver,'x1gryazu')
+    containers = driver.find_element(By.CLASS_NAME,'x1gryazu')
+    containers = containers.find_elements(By.TAG_NAME,'a')
+    links = [link.get_attribute('href') for link in containers]
+    links = [link for link in links if 'https://www.instagram.com/p/' in link ]
+    random.shuffle(links)
+    print(links)
+    
+    for link in links:
+        userQueue.put({'link':link,'catigory':''})
+    driver.execute_script("arguments[0].scrollIntoView();",containers[-1])
         # print( '\n now has %i posts \n'%(len(posts)))
+        
 # def Finder(driver,userlink):
 #     try:
 #         driver.get(userlink)

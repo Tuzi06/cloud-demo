@@ -1,8 +1,8 @@
-import pexpect
-from selenium.webdriver import Chrome,ChromeOptions
+from selenium.webdriver.common.by import By
 from urllib.parse import urlencode
-import pickle,queue,os,time,requests,json,hashlib
+import pickle,queue,os,time,requests,json,hashlib, pexpect
 from utls import GCloudConnection
+from threading import Threads
 
 from lowlevel.main import prepare_driver,Producer
 
@@ -12,8 +12,10 @@ class Master(GCloudConnection):
         GCloudConnection.__init__(self,URL,LOG_NAME='master-scrapper')
         self.URL = URL
         self.userQueue = queue.Queue()
+        self.linkQueue = queue.Queue()
         self.producer = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
         self.producer.get('https://www.instagram.com/explore/search/keyword/?q=%s'%('tech'))
+        self.finder = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
         self.userlog = []
         self.restarting = False
 
@@ -34,12 +36,12 @@ class Master(GCloudConnection):
     
     def sendJob(self):
         # job = self.current_job
-        job = self.userQueue.get()
+        job = self.linkQueue.get()
         if job not in self.userlog:
             url = self.URL + "/job?" +urlencode({'url':job,'aaa':''})
             self.userlog.append(job)
             print(f"starting scraping job {job} at {self.URL}")
-            response = requests.get(url,timeout=10)
+            response = requests.get(url,timeout=1000)
             print(response.content)
     
     def restartNode(self):
@@ -69,9 +71,15 @@ class Master(GCloudConnection):
             #     time.sleep(5)
             #     continue
             elif state == "idle":
-                next_job_ready = True
-                if self.userQueue.empty():
+                if self.linkQueue.empty():
                     Producer(self.producer,self.userQueue)
+                    while not self.userQueue.empty():
+                        link = self.userQueue.get()['link']
+                        self.finder.get(link)
+                        time.sleep(2)
+                        container = self.finder.find_element(By.CLASS_NAME,'_aaqt')
+                        self.linkQueue.put(container.find_element(By.TAG_NAME,'a').get_attribute('href'))
+                next_job_ready = True
             if next_job_ready:
                 self.sendJob()
             time.sleep(1)
