@@ -1,3 +1,4 @@
+import time
 from flask import Flask
 import requests
 
@@ -13,6 +14,7 @@ def test():
         response = requests.get('https://www.instagram.com/attorneycrump/?__a=1&__d=dis',proxies = {
                             'http': proxy,
                             'https': proxy})
+        time.sleep(1)
         print(response.status_code)
         if response.status_code != 200:
             return 'scraper detected'
