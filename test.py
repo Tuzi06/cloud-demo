@@ -10,7 +10,9 @@ def test():
     password = 'iLvsubq3727BujKvZx'
     proxy = f"http: //{username}:{password}@gate.smartproxy.com:10000"
     for i in range(1000):
-        response = requests.get('https://www.instagram.com/attorneycrump/?__a=1&__d=dis',proxies=proxy)
+        response = requests.get('https://www.instagram.com/attorneycrump/?__a=1&__d=dis',proxies = {
+                            'http': proxy,
+                            'https': proxy})
         print(response.status_code)
         if response.status_code != 200:
             return 'scraper detected'
