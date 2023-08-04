@@ -1,15 +1,14 @@
 from selenium.webdriver.common.by import By
 from urllib.parse import urlencode
 import pickle,queue,os,time,requests,json,hashlib, pexpect
-from utls import GCloudConnection
+
 # from threading import Threads
 
 from lowlevel.main import prepare_driver,Producer
 
 url = 'https://www.xiaohongshu.com/explore'
-class Master(GCloudConnection):
+class Master():
     def __init__(self,URL):
-        GCloudConnection.__init__(self,URL,LOG_NAME='master-scrapper')
         self.URL = URL
         self.userQueue = queue.Queue()
         self.linkQueue = queue.Queue()

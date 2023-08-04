@@ -1,9 +1,7 @@
 import lowlevel.ins as ins  
 from selenium import webdriver
 from selenium. webdriver.common.by import By
-from threading import Thread
-from queue import Queue
-import sys,pickle,time,datetime,json,random
+import sys,time,random
 from selenium.webdriver.chrome.service import Service
 
 url = 'https://www.instagram.com/explore'
@@ -58,19 +56,6 @@ def Producer(driver,userQueue):
         userQueue.put({'link':link,'catigory':''})
     driver.execute_script("arguments[0].scrollIntoView();",containers[-1])
         # print( '\n now has %i posts \n'%(len(posts)))
-        
-# def Finder(driver,userlink):
-#     try:
-#         driver.get(userlink)
-#         if ' https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(driver.current_url):
-#             driver.get(userlink)
-#         ins.wait_for_page(driver,'user-interactions')
-#         user = xhs.getUser(driver)
-#         user['userLink'] = userlink
-#         if 'W' in user['follow'] or '万' in user['follow']:
-#             return {'info':user,'post':xhs.getLinks(driver)}
-#     except:
-#         return 
 
 # def Worker(driver,postInfo,posts):
 #     try:
