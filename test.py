@@ -7,9 +7,9 @@ app = Flask(__name__)
 @app.route('/i')
 def test():
     code = 0
-    username = 'user-spal93ysiq-sessionduration-1'
+    username = 'spal93ysiq'
     password = 'iLvsubq3727BujKvZx'
-    proxy = f"http://{username}:{password}@gate.smartproxy.com:10000"
+    proxy = f"https://{username}:{password}@gate.smartproxy.com:7000"
     for i in range(1000):
         response = requests.get('https://www.instagram.com/attorneycrump/?__a=1&__d=dis',proxies = {
                             'http': proxy,
