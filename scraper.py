@@ -16,6 +16,7 @@ class Scraper:
                 self.child.send('busy')
                 link,_ = job.values()
                 response = requests.get(f"{link}?__a=1&__d=dis")
+                print(response.status_code)
                 if response.status_code == 200:  
                     shortCodes = [node['node']['shortcode'] for node in (json.loads(response.text))['graphql']['user']['edge_felix_video_timeline']['edges']]
                     print(shortCodes)   

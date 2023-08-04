@@ -7,3 +7,5 @@ COPY . /app
 WORKDIR /app
 RUN pip3 --no-cache-dir install -r requirements.txt
 CMD python3 test.py
+
+# docker buildx build --platform linux/amd64,linux/arm64  -t tuzi06/scraper --push .
