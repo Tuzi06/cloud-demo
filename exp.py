@@ -8,6 +8,6 @@ username = 'user-spal93ysiq-sessionduration-5'
 password ='eIg4qQxqoA4bG74yun'
 proxy = f"https://{username}:{password}@us.smartproxy.com:10001"
 s.proxies.update({'http':proxy,'https':proxy})
-response = s.get('https://www.instagram.com/p/CviKG1Tts1r/?z')
+response = s.get('https://www.instagram.com/p/CviKG1Tts1r/?__a=1&__d=dis')
 print(response.status_code)
 # open('res.html','w').write(str(response.content))
