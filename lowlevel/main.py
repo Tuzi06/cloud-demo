@@ -4,7 +4,7 @@ from selenium. webdriver.common.by import By
 import sys,time,random
 from selenium.webdriver.chrome.service import Service
 
-url = 'https://www.instagram.com/explore'
+url = 'https://www.instagram.com/'
 
 def init():
     soption = webdriver.ChromeOptions()
@@ -17,10 +17,13 @@ def init():
     driver.quit()
     return cookies
 
-def prepare_driver(cookies,workers,headless = True):
+def prepare_driver(cookies,workers,headless = True,proxy = ''):
     drivers = []
     options = webdriver.ChromeOptions()
     options.add_argument('disable-blink-features=AutomationControlled')
+    if proxy != '':
+        print(proxy)
+        options.add_argument('--proxy-server={}'.format(proxy))
     if sys.platform == 'linux':
         service = Service(executable_path= '/usr/bin/chromedriver.exe')
     elif sys.platform == 'darwin':
@@ -42,7 +45,6 @@ def prepare_driver(cookies,workers,headless = True):
     return drivers
 
 def Producer(driver,userQueue):
-    input('adfads')
     # print('https://www.instagram.com/explore/search/keyword/?q=%s%s'%(tag,random.choice(chartoken)))
     ins.wait_for_page(driver,'x1gryazu')
     containers = driver.find_element(By.CLASS_NAME,'x1gryazu')
@@ -50,8 +52,7 @@ def Producer(driver,userQueue):
     links = [link.get_attribute('href') for link in containers]
     links = [link for link in links if 'https://www.instagram.com/p/' in link ]
     random.shuffle(links)
-    print(links)
-    
+ 
     for link in links:
         userQueue.put({'link':link,'catigory':''})
     driver.execute_script("arguments[0].scrollIntoView();",containers[-1])
