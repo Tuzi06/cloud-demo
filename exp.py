@@ -10,4 +10,4 @@ proxy = f"https://{username}:{password}@us.smartproxy.com:10001"
 s.proxies.update({'http':proxy,'https':proxy})
 response = s.get('https://www.instagram.com/p/CviKG1Tts1r/?z')
 print(response.status_code)
-open('res.html','w').write(str(response.content))
+# open('res.html','w').write(str(response.content))
