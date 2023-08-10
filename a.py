@@ -32,8 +32,7 @@ for keyword in keywords:
                     username = url.text
                     userres = requests.get(f"{url.get_attribute('href')}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
 
-                    # userres = requests.get(f"https://www.instagram.com/{username}/?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
-                    
+                   
                     print(f"https://www.instagram.com/{username}/?__a=1&__d=dis")
 
                     if userres.status_code != 200:

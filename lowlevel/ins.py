@@ -5,7 +5,6 @@ from selenium.webdriver.support.expected_conditions import presence_of_element_l
 import time,traceback,json,random
 
 init_url = 'https://www.instagram.com/explore'
-cn = 5 #每条帖子所抓取的评论量
 @contextmanager
 def wait_for_page(driver,element,mode = 'show',timeout = 10):
     try:
@@ -17,90 +16,24 @@ def wait_for_page(driver,element,mode = 'show',timeout = 10):
         # print('not %s  @ '%mode, element,'  ',driver.current_url)
         return
 
-def getUser(driver):
-    wait_for_page(driver,'x1qjc9v5')
-    user = dict() #用于存储信息的组建，使用dict以便后续写入json文档中
-    try:
-        user['id'] = driver.find_element(By.TAG_NAME,'h2').text
-    except:
-        user['id'] = driver.find_element(By.TAG_NAME,'h1').text
-    userBlock = driver.find_element(By.CLASS_NAME,'x7a106z')
-    user['user-name'] = userBlock.find_element(By.XPATH,'div[1]/span').text
-    user['follow'] = driver.find_elements(By.CLASS_NAME,'_ac2a')[1].text.lower()
-    try:
-        user['user-info'] =userBlock.find_element(By.TAG_NAME,'h1').text
-    except:
-        user['user-info'] = ''
-    try:
-        user['user-sex'] = driver.find_element(By.CLASS_NAME,'gender').find_element(By.TAG_NAME,'use').get_attribute('xlink:href')[1:]
-    except:
-        user['user-sex'] = ''
-    try:
-        user['user-tag'] = userBlock.find_element(By.XPATH,'div[2]/div').text
-    except:
-        user['user-tag'] = []
-    user['user-link'] = driver.current_url
-    return user
+def findPostContent(soup,content):
+    post = soup.find_all('span',class_='x193iq5w xeuugli x1fj9vlw x13faqbe x1vvkbs xt0psk2 x1i0vuye xvs91rp xo1l8bm x5n08af x10wh9bi x1wdrske x8viiok x18hxmgj')
+    content['text'] = post[0].get_text()
 
-def getLinks(driver):
-    chartoken = ['%0d','%2e','%09','%20',' ']
-    wait_for_page(driver,'_aabd')
-    contentBlock = driver.find_element(By.CLASS_NAME,'x9f619')
-    contents = contentBlock.find_elements(By.CLASS_NAME,'_aabd')
-    links = [content.find_element(By.TAG_NAME,'a').get_attribute('href') + random.choice(chartoken) for content in contents]
-    return links
+def findComment(soup,content): 
+    container = soup.find('div',class_='x78zum5 xdt5ytf x1iyjqo2')
+    comments = container.find_all('div',recursive=False)
+    res = []
+    for comment in comments[1:]:
+        if comment.find_all('div',class_='x9f619 xjbqb8w x78zum5 x168nmei x13lgxp2 x5pf9jr xo71vjh xwib8y2 x1y1aw1k x1uhb9sk x1plvlek xryxfnj x1c4vz4f x2lah0s x1q0g3np xqjyukv x6s0dn4 x1oa3qoh x1nhvcw1')!= []:
+            replys = comment.find_all('div',class_='x9f619 xjbqb8w x78zum5 x168nmei x13lgxp2 x5pf9jr xo71vjh xsag5q8 xz9dl7a x1uhb9sk x1plvlek xryxfnj x1c4vz4f x2lah0s x1q0g3np xqjyukv x1qjc9v5 x1oa3qoh x1nhvcw1')
+            res[-1]['reply'] = [{reply.find('div',class_='xt0psk2').get_text():reply.find('div',class_='x9f619 xjbqb8w x78zum5 x168nmei x13lgxp2 x5pf9jr xo71vjh x1uhb9sk x1plvlek xryxfnj x1c4vz4f x2lah0s xdt5ytf xqjyukv x1cy8zhl x1oa3qoh x1nhvcw1').get_text()}for reply in replys]
+        else:
+            res.append({'comment': {comment.find('div',class_='xt0psk2').get_text():comment.find('div',class_='x9f619 xjbqb8w x78zum5 x168nmei x13lgxp2 x5pf9jr xo71vjh x1uhb9sk x1plvlek xryxfnj x1c4vz4f x2lah0s xdt5ytf xqjyukv x1cy8zhl x1oa3qoh x1nhvcw1').get_text()},'reply':[]})
 
-def findPostContent(driver,content):
-    try:
-        wait_for_page(driver,'x4h1yfo')
-        block = driver.find_element(By.CLASS_NAME,'x4h1yfo')
-        nr = block.find_element(By.TAG_NAME,'h1')
-        text = nr.text
-        tags = nr.find_elements(By.TAG_NAME,'a')
-        tags = [tag.text for tag in tags]
-        tags = list(filter(lambda tag: tag[0] == '#',tags))
-        text = text.split(' ')
-        text = ' '.join(filter(lambda word: word not in tags, text))
-        content['text'] = text
-        content['tags'] = tags
-    except:
-        # print(traceback.print_exc())
-        content['text'] = ''
-
-
-def findComment(driver,content): 
-    comments = []
-    try:
-        container = dict()
-        temps = driver.find_elements(By.CLASS_NAME,'_a9ym')
-        comment = []
-        for temp in temps[:5]:
-            com = dict()
-            spans = temp.find_elements(By.TAG_NAME,'span')
-            if spans[0].text != '':
-                com['comment'] = spans[0].text
-            else:
-                com['comment'] = spans[1].text
-            try:
-                temp.find_element(By.CLASS_NAME,'_a9yo').click()
-                time.sleep(1)
-                reply = temp.find_elements(By.CLASS_NAME,'_a9zs')[:cn]
-                reply = [r.find_element(By.TAG_NAME,'span').text for r in reply]
-                com['reply'] = reply
-                comment.append(com)
-            except:
-                comment.append(com)
-
-        container['comments'] = comment
-        # print(container['comments'])
-        comments.append(container)
-    except:
-        print(traceback.print_exc())
-        # input('f')
-    # print(comments)
     content['comments'] = comments
 
-def findPicture(driver,content = {},idx = 0,user = {'id':''}):
+def findPicture(driver,idx = 0,user = {'id':''}):
     #抓取所有帖子里的图片的链接
     pic = dict()
     try:
@@ -134,50 +67,22 @@ def findPicture(driver,content = {},idx = 0,user = {'id':''}):
                 temp = container.find_element(By.TAG_NAME,'img')
                 pic['%s-%i.png'%(user['id'],idx)] = temp.get_attribute('src')
                 idx += 1
-        content['picture'] = pic
-        return idx
+        return pic[:5]
+       
 
     except:
         # print('has only video')
-        content['picture'] = {}
-        return idx
+        return []
     
-def grabing(driver,link,user,detail_text,catigory,idx):
-    driver.get(link)
-    wait_for_page(driver,'_aagv')
-    #包装帖子内容，为后续写入json做准备
-    postInfo = dict()
-    postInfo['user-id'] = user['id']
-    postInfo['user-name'] = user['user-name']
-    postInfo['user-info'] = user['user-info']
-    postInfo['user-sex'] = user['user-sex']
-    postInfo['user-tag'] = user['user-tag']
-    postInfo['user-link'] = user['user-link']
-
-    post = dict()
-    post['catigory'] = catigory
-    idx= findPicture(driver,post,idx,user)
-    if len(post['picture']) ==0:
-        return idx
-    findPostContent(driver,post)
-    findComment(driver,post)
-    postInfo['post'] = post
-
-    if len(post['picture']) ==0:
-        return idx
-    detail_text.append(postInfo)
-    postInfo['link'] = link
-    return idx
-
+    
 def run(driver,links,detail_text,user,catigory,average):
-    idx = 0
-    random.shuffle(links)
-    for link in links:
-        try:
-            grabing(driver,link,user,detail_text,catigory,idx)
-            # average = 2
-        except:
-            print('fail grabing @ ',link)
-        time.sleep(random.uniform(0,average))
-
-    # savePicture(driver,user,photos,'ins')
+    pass
+    # idx = 0
+    # random.shuffle(links)
+    # for link in links:
+    #     try:
+            
+    #         # average = 2
+    #     except:
+    #         print('fail grabing @ ',link)
+    #     time.sleep(random.uniform(0,average))

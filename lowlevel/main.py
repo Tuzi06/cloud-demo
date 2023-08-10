@@ -3,6 +3,8 @@ from selenium import webdriver
 from selenium. webdriver.common.by import By
 import sys,time,random
 from selenium.webdriver.chrome.service import Service
+from fake_useragent import FakeUserAgent as agent
+
 
 url = 'https://www.instagram.com/'
 
@@ -20,7 +22,11 @@ def init():
 def prepare_driver(cookies,workers,headless = True,proxy = ''):
     drivers = []
     options = webdriver.ChromeOptions()
-    options.add_argument('disable-blink-features=AutomationControlled')
+    # options.add_argument('disable-blink-features=AutomationControlled')
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--incognito')
+    options.add_argument("--disable-extensions")
+
     if proxy != '':
         print(proxy)
         options.add_argument('--proxy-server={}'.format(proxy))
@@ -40,7 +46,7 @@ def prepare_driver(cookies,workers,headless = True,proxy = ''):
             if isinstance(cookie.get('expiry'), float):
                 cookie['expiry'] = int(cookie['expiry'])
             driver.add_cookie(cookie)
-        driver.refresh()
+        # driver.refresh()
         drivers.append(driver)
     return drivers
 
@@ -48,6 +54,7 @@ def Producer(driver,userQueue):
     # print('https://www.instagram.com/explore/search/keyword/?q=%s%s'%(tag,random.choice(chartoken)))
     ins.wait_for_page(driver,'x1gryazu')
     containers = driver.find_element(By.CLASS_NAME,'x1gryazu')
+    containers = containers.find_element(By.TAG_NAME,'section')
     containers = containers.find_elements(By.TAG_NAME,'a')
     links = [link.get_attribute('href') for link in containers]
     links = [link for link in links if 'https://www.instagram.com/p/' in link ]
@@ -58,8 +65,9 @@ def Producer(driver,userQueue):
     driver.execute_script("arguments[0].scrollIntoView();",containers[-1])
         # print( '\n now has %i posts \n'%(len(posts)))
 
-# def Worker(driver,postInfo,posts):
-#     try:
-#         ins.run(driver,postInfo['post'],posts,postInfo['info'])
-#     except:
-#         return 
+def Worker(driver,postInfo,posts):
+    try:
+        ins.run(driver,postInfo['post'],posts,postInfo['info'])
+    except:
+        return 
+    

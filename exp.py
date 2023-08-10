@@ -1,13 +1,18 @@
+from selenium.webdriver.common.by import By
+import pickle,time
 from requests import session
+from bs4 import BeautifulSoup
 
-headers ={'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.28 Safari/537.36'}
-s = session()
-s.headers = headers
+from lowlevel.main import prepare_driver,Producer
+from fake_useragent import UserAgent
+from fake_headers import Headers
 
-username = 'user-spal93ysiq-sessionduration-5'
-password ='eIg4qQxqoA4bG74yun'
-proxy = f"https://{username}:{password}@us.smartproxy.com:10001"
-s.proxies.update({'http':proxy})
-response = s.get('https://www.instagram.com/p/CviKG1Tts1r/?__a=1&__d=dis')
-print(response.status_code)
-# open('res.html','w').write(str(response.content))
+cookies = pickle.load(open('lowlevel/ins_cookies.pkl','rb'))
+# # # print(len(cookies))
+# producer = prepare_driver(cookies,1,False)[0]
+finder = prepare_driver(cookies,1,False)[0]
+
+finder.get('https://www.instagram.com/p/Cp3XtortlhY/')
+input('pause')
+soup = BeautifulSoup(finder.page_source,'html.parser')
+open('res.html','w').write(soup.prettify())
