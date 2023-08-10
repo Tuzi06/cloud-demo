@@ -72,7 +72,7 @@ def process_userjob():
 @app.route('/dataJob')
 def process_dataJob():
     scraper.postParent.send(request.data)
-    while len(scraper.post) == 0:
+    while len(scraper.posts) == 0:
         continue
     return jsonify(scraper.post)
     return f"Job {request.args} started"
