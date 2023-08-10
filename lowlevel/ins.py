@@ -2,7 +2,7 @@ from selenium.webdriver.common.by import By
 from contextlib import contextmanager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.expected_conditions import presence_of_element_located,visibility_of_element_located
-import time,traceback,json,random
+from bs4 import BeautifulSoup
 
 init_url = 'https://www.instagram.com/explore'
 @contextmanager
@@ -75,14 +75,9 @@ def findPicture(driver,idx = 0,user = {'id':''}):
         return []
     
     
-def run(driver,links,detail_text,user,catigory,average):
-    pass
-    # idx = 0
-    # random.shuffle(links)
-    # for link in links:
-    #     try:
-            
-    #         # average = 2
-    #     except:
-    #         print('fail grabing @ ',link)
-    #     time.sleep(random.uniform(0,average))
+def run(htmlText,user,pictures):
+    soup = BeautifulSoup(htmlText,'html.parser')
+    post=user
+    findPostContent(soup,post)
+    findComment(soup,post)
+    post['pic'] = pictures

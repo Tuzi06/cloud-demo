@@ -16,6 +16,7 @@ class Master():
         self.linkQueue = queue.Queue()
         self.codeQueue = queue.Queue()
         self.userlog = []
+        self.count = 0
         self.stop = False
 
     def start(self):
@@ -28,6 +29,7 @@ class Master():
         try:
             response = requests.get(f"{self.URL}/state?{urlencode({'process':process,'aaa':''})}", timeout=10000)
             state = response.content.decode("utf-8")
+            print(state)
         except Exception:
             state = "no-answer"
         return state
@@ -35,7 +37,7 @@ class Master():
     def sendShortCodeJob(self):
         job = self.linkQueue.get()
         if job not in self.userlog:
-            url = self.URL + "/userjob?" +urlencode({'url':job,'aaa':''})
+            url = self.URL + "/userJob?" +urlencode({'url':job,'aaa':''})
             self.userlog.append(job)
             print(f"starting scraping job {job} at {self.URL}")
             response = requests.get(url,timeout=1000)
@@ -59,16 +61,19 @@ class Master():
                 
 
 def maintain_queue(master):
+    time.sleep(5)
     keywords = json.load(open('keywords.json','r'))
-    lengthPerKeyword = 5000//len(keyword)
+    lengthPerKeyword = 5000//len(keywords)
     for keyword in keywords:
+        print(keyword)
         master.count =0
+        producer.get(f"https://www.instagram.com/explore/search/keyword/?q={keyword}")
         while master.count<=lengthPerKeyword:
             if master.linkQueue.qsize()>10:
                 continue
             Producer(producer,master.userQueue)
-            while not master.empty():
-                    link =master.get()['link']
+            while not master.userQueue.empty():
+                    link =master.userQueue.get()['link']
                     finder.get(link)
                     time.sleep(2)
                     container = finder.find_element(By.CLASS_NAME,'_aaqt')
@@ -86,9 +91,10 @@ if __name__ == "__main__":
         url = 'http://192.168.1.67:5000'
         # url = "https://scraper-394300.uc.r.appspot.com" #local mode
     master = Master(url)
+    print('started')
     threads = []
     threads.append(Thread(target = maintain_queue, args = {master}))
-    threads.append(Thread(target = master.processShortCode(),args = {}))
+    threads.append(Thread(target = master.processShortCode,args = {}))
     for thread in threads:
         thread.start()
     for thread in threads:

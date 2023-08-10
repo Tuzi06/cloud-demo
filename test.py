@@ -1,24 +1,14 @@
+import json
 import time
-from flask import Flask
-import requests
+from urllib.parse import urlencode
+from lowlevel.main import prepare_driver
+from lowlevel.ins import findPicture
+import requests,pickle
+from flask import jsonify
 
-app = Flask(__name__)
-
-@app.route('/i')
-def test():
-    code = 0
-    for i in range(1000):
-        username = 'user-spal93ysiq-sessionduration-1'
-        password = 'iLvsubq3727BujKvZx'
-        proxy = f"http://{username}:{password}@gate.smartproxy.com:10000"
-        response = requests.get('https://www.instagram.com/attorneycrump/?__a=1&__d=dis',proxies = {
-                            'http': proxy,
-                            'https': proxy})
-        time.sleep(1)
-        print(response.status_code)
-        if response.status_code != 200:
-            return 'scraper detected'
-    return 'success'
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000,debug=False)
+cookies = pickle.load(open('lowlevel/ins_cookies.pkl','rb'))
+driver = prepare_driver(cookies,1)
+driver.get('https://www.instagram.com/p/Cvt1PgPtUMj/')
+time.sleep(5)
+pictures = findPicture(driver,0)
+response = requests.get('http://192.168.1.67:5000/dataJob?'+urlencode({'html':jsonify(driver.page_source),'user':{'id':'asdf'},'pics':pictures}))

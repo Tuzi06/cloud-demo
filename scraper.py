@@ -1,7 +1,7 @@
 from flask import Flask,request,jsonify
 import os,logging,time,pickle,queue,requests,json 
 from multiprocessing import Process,Pipe
-from lowlevel.main import Worker
+from lowlevel.ins import findPicture,run
 
 class Scraper:
     def __init__(self) -> None:
@@ -23,7 +23,7 @@ class Scraper:
                 username = 'tuzi06'
                 password = 'rbckHhji06FbJTa00y'
                 proxy = f"http://{username}:{password}@ca.smartproxy.com:20001"
-                response = requests.get(f"https://www.instagram.com/{user}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
+                response = requests.get(f"{user}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
                 
                 print(response.status_code)
                 if response.status_code == 200:  
@@ -42,8 +42,8 @@ class Scraper:
             job = self.postChild.recv()
             if job != None:
                 self.postChild.send('busy')
-                html,_ = job.values()
-                post = Worker(html)
+                html,user,pics= job.values()
+                post = run(html,user,pics)
                 self.posts.append(post)
                 self.postChild.send('idle')
 
@@ -72,6 +72,9 @@ def process_userjob():
 @app.route('/dataJob')
 def process_dataJob():
     scraper.postParent.send(request.args)
+    while len(scraper.post) == 0:
+        continue
+    return jsonify(scraper.post)
     return f"Job {request.args} started"
     
 @app.route('/download')
