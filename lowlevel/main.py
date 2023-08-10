@@ -3,7 +3,6 @@ from selenium import webdriver
 from selenium. webdriver.common.by import By
 import sys,time,random
 from selenium.webdriver.chrome.service import Service
-from fake_useragent import FakeUserAgent as agent
 
 
 url = 'https://www.instagram.com/'

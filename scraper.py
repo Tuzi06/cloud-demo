@@ -20,7 +20,11 @@ class Scraper:
             if job != None:
                 self.child.send('busy')
                 user,_ = job.values()
-                response = requests.get(f"https://www.instagram.com/{user}?__a=1&__d=dis")
+                username = 'tuzi06'
+                password = 'rbckHhji06FbJTa00y'
+                proxy = f"http://{username}:{password}@ca.smartproxy.com:20001"
+                response = requests.get(f"https://www.instagram.com/{user}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
+                
                 print(response.status_code)
                 if response.status_code == 200:  
                     shortCodes = [node['node']['shortcode'] for node in (json.loads(response.text))['graphql']['user']['edge_felix_video_timeline']['edges']]
