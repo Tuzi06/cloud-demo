@@ -37,7 +37,7 @@ class Scraper:
                     self.child.send('scraping-detected')
 
     def getData(self,pipe):
-        self.receive = pipe
+        self.postChild = pipe
         while not self.stop:
             job = self.postChild.recv()
             if job != None:
@@ -54,7 +54,7 @@ def start_child_process(): #Gunicorn does not allow the creation of new processe
     global scraper
     scraper = Scraper()
     Process(target = scraper.getShortCode, args = [scraper.child]).start()
-    Process(target = scraper.getData, args = [scraper.receive]).start()
+    Process(target = scraper.getData, args = [scraper.postChild]).start()
     return "Scraper running"
 
 @app.route('/userJob')
