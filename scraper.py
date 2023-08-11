@@ -88,7 +88,7 @@ def process_dataJob():
         if post != None:
             break
         time.sleep(3)
-    return jsonify(result=post)
+    return jsonify(post)
     
 @app.route('/download')
 def store_posts():
