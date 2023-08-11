@@ -20,11 +20,12 @@ class Scraper:
             job = self.child.recv()
             if job != None:
                 self.child.send('busy')
-                user,_ = job.values()
-                username = 'user-tuzi06-sessionduration-1'
+                userlink,_ = job.values()
+                print(userlink)
+                username = 'user-tuzi06-sessionduration-5'
                 password = 'i2Zgeyyk5SwTCu28im'
                 proxy = f"http://{username}:{password}@ca.smartproxy.com:20001"
-                response = requests.get(f"{user}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
+                response = requests.get(f"{userlink}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
                 
                 print(response.status_code)
                 if response.status_code == 200:  
