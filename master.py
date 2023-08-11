@@ -10,7 +10,7 @@ from lowlevel.main import prepare_driver,Producer
 url = 'https://www.xiaohongshu.com/explore'
 producer = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
 finder = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
-worker = prepare_driver(pickle.load(open([],'rb')),1,False)[0]
+worker = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
 class Master():
     def __init__(self,URL):
         self.URL = URL
@@ -69,6 +69,8 @@ class Master():
             state = self.checkState('user')
             if state =='idle':
                 self.sendShortCodeJob()
+            elif state == 'not-started':
+                self.start()
             else:
                 time.sleep(3)
     def processPost(self):
@@ -116,6 +118,7 @@ if __name__ == "__main__":
     threads = []
     threads.append(Thread(target = maintain_queue, args = {master}))
     threads.append(Thread(target = master.processShortCode,args = {}))
+    threads.append(Thread(target= master.processPost, args = {}))
     for thread in threads:
         thread.start()
     for thread in threads:

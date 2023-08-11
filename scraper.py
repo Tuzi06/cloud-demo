@@ -21,8 +21,8 @@ class Scraper:
             if job != None:
                 self.child.send('busy')
                 user,_ = job.values()
-                username = 'tuzi06'
-                password = 'rbckHhji06FbJTa00y'
+                username = 'user-tuzi06-sessionduration-1'
+                password = 'i2Zgeyyk5SwTCu28im'
                 proxy = f"http://{username}:{password}@ca.smartproxy.com:20001"
                 response = requests.get(f"{user}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
                 
