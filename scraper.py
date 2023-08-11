@@ -10,7 +10,7 @@ class Scraper:
         self.parent, self.child = Pipe() # pipe for passing users name to getShortCode and update UserState
         self.codeParent,self.codeChild = Pipe() # pipe for return the shorCode list
         self.postParent,self.postChild = Pipe() # pipe for passing html to getData and update dataState
-        self.posts = []
+        self.resParent,self.resChild = Pipe()
         self.stop = False
 
     def getShortCode(self, pipe):
@@ -41,10 +41,14 @@ class Scraper:
         while not self.stop:
             job = self.postChild.recv()
             if job != None:
+                # print(job)
                 self.postChild.send('busy')
-                html,user,pics= job.values()
-                post = run(html,user,pics)
-                self.posts.append(post)
+                # data = job
+                # html,user,pics = job.get('html','user','pics')
+                print(job.get('user'))
+                post = run(job['html'],job['user'],job['pics'])
+                print(type(post))
+                self.resParent.send(post)
                 self.postChild.send('idle')
 
 app = Flask(__name__)
@@ -56,6 +60,11 @@ def start_child_process(): #Gunicorn does not allow the creation of new processe
     Process(target = scraper.getShortCode, args = [scraper.child]).start()
     Process(target = scraper.getData, args = [scraper.postChild]).start()
     return "Scraper running"
+
+@app.route('/stop')
+def stop():
+    scraper.stop = True
+    return 'stopped'
 
 @app.route('/userJob')
 def process_userjob():
@@ -69,13 +78,15 @@ def process_userjob():
     if shortCodes:
         return jsonify(result = shortCodes)
 
-@app.route('/dataJob')
+@app.route('/dataJob',methods=['POST'])
 def process_dataJob():
-    scraper.postParent.send(request.data)
-    while len(scraper.posts) == 0:
-        continue
-    return jsonify(scraper.post)
-    return f"Job {request.args} started"
+    scraper.postParent.send(request.get_json())
+    while True:
+        post= scraper.resChild.recv()
+        if post != None:
+            break
+        time.sleep(3)
+    return jsonify(result=post)
     
 @app.route('/download')
 def store_posts():
@@ -84,6 +95,7 @@ def store_posts():
 @app.route('/reset')
 def reset_post():
     scraper.posts = []
+
 
 @app.route('/state')
 def current_state():
