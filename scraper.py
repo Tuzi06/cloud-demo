@@ -22,9 +22,9 @@ class Scraper:
                 self.child.send('busy')
                 userlink,_ = job.values()
                 print(userlink)
-                username = 'user-tuzi06-sessionduration-5'
+                username = 'user-tuzi06-sessionduration-1'
                 password = 'i2Zgeyyk5SwTCu28im'
-                proxy = f"http://{username}:{password}@ca.smartproxy.com:20001"
+                proxy = f"http://{username}:{password}@my.smartproxy.com:30001"
                 response = requests.get(f"{userlink}?__a=1&__d=dis",proxies={'http':proxy,'https':proxy})
                 
                 print(response.status_code)
@@ -37,7 +37,9 @@ class Scraper:
                     user['user-link'] =  userlink
                     shortCodes = [node['node']['shortcode'] for node in userres['graphql']['user']['edge_felix_video_timeline']['edges']]  
                     self.codeParent.send({'userinfo':user,'shortCodes':shortCodes})
-                    self.child.send('idle')
+                else:
+                    self.codeParent.send({'userinfo':[],'shortCodes':[]})
+                self.child.send('idle')
           
 
     def getData(self,postpipe,respipe):
