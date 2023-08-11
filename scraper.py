@@ -32,7 +32,7 @@ class Scraper:
                     userres = json.loads(response.text)
                     user= dict()
                     user['user-id'] = userres['graphql']['user']['id'],
-                    user['username'] = userlink.split('/'[-2])
+                    user['username'] = userlink.split('/')[-2]
                     user['user-info'] = userres['graphql']['user']['biography'],
                     user['user-link'] =  userlink
                     shortCodes = [node['node']['shortcode'] for node in userres['graphql']['user']['edge_felix_video_timeline']['edges']]  
