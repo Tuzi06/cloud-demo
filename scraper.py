@@ -115,3 +115,7 @@ def current_state():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
+
+
+
+# curl -x 'http://user-tuzi06-sessionduration-1:i2Zgeyyk5SwTCu28im@ca.smartproxy.com:20001' 'https://ip.smartproxy.com/json'
