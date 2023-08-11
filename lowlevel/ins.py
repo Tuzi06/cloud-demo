@@ -74,12 +74,12 @@ def findPicture(driver,idx = 0,user = {'id':''}):
                 temp = container.find_element(By.TAG_NAME,'img')
                 pic['%s-%i.png'%(user['id'],idx)] = temp.get_attribute('src')
                 idx += 1
-        return pic[:5]
+        return pic[:5],idx
        
 
     except:
         # print('has only video')
-        return []
+        return [],idx
     
     
 def run(htmlText,user,pictures):

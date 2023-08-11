@@ -28,14 +28,16 @@ class Scraper:
                 
                 print(response.status_code)
                 if response.status_code == 200:  
-                    shortCodes = [node['node']['shortcode'] for node in (json.loads(response.text))['graphql']['user']['edge_felix_video_timeline']['edges']]
-                    print(shortCodes)   
-                    self.codeParent.send(shortCodes)
-                    print('done')
+                    userres = json.loads(response.text)
+                    user= dict()
+                    user['user-id'] = userres['graphql']['user']['id'],
+                    user['username'] = username,
+                    user['user-info'] = userres['graphql']['user']['biography'],
+                    user['user-link'] =  f"https://www.instagram.com/{username}/"
+                    shortCodes = [node['node']['shortcode'] for node in userres['graphql']['user']['edge_felix_video_timeline']['edges']]  
+                    self.codeParent.send({'userinfo':user,'shortCodes':shortCodes})
                     self.child.send('idle')
-                   
-                else:
-                    self.child.send('scraping-detected')
+          
 
     def getData(self,postpipe,respipe):
         self.postChild = postpipe
@@ -78,7 +80,7 @@ def process_userjob():
             break
     print(shortCodes)
     if shortCodes:
-        return jsonify(result = shortCodes)
+        return shortCodes
 
 @app.route('/dataJob',methods=['POST'])
 def process_dataJob():
@@ -94,7 +96,6 @@ def process_dataJob():
 @app.route('/reset')
 def reset_post():
     scraper.posts = []
-
 
 @app.route('/state')
 def current_state():

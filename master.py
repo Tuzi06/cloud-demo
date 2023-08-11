@@ -1,6 +1,7 @@
 from selenium.webdriver.common.by import By
 from urllib.parse import urlencode
 import pickle,queue,os,time,requests,json
+from lowlevel.ins import findPicture
 
 from threading import Thread
 
@@ -9,6 +10,7 @@ from lowlevel.main import prepare_driver,Producer
 url = 'https://www.xiaohongshu.com/explore'
 producer = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
 finder = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
+worker = prepare_driver(pickle.load(open([],'rb')),1,False)[0]
 class Master():
     def __init__(self,URL):
         self.URL = URL
@@ -16,7 +18,8 @@ class Master():
         self.linkQueue = queue.Queue()
         self.codeQueue = queue.Queue()
         self.userlog = []
-        self.count = 0
+        self.tempStorage = []
+        self.Storage = []
         self.stop = False
 
     def start(self):
@@ -42,33 +45,48 @@ class Master():
             print(f"starting scraping job {job} at {self.URL}")
             response = requests.get(url,timeout=1000)
             print(json.load(response.content))
-            self.codeQueue.put(json.load(response.content))
+            self.codeQueue.put(json.load(response))
     
     def sendPostJob(self):
-        shortCodes= self.codeQueue.get()
-        url = self.URL+'/userJob?'+urlencode({'shortCodes':shortCodes,'aaa':''})
-        self.count= requests.get(url,timeout=1000)
-        
+        userAndCode= self.codeQueue.get()
+        idx= 0
+        for shortCode in userAndCode['shorCodes']:
+            worker.get(f"https://www.instagram.com/p/{shortCode}/")
+            time.sleep(2)
+            buttons = worker.find_elements(By.CLASS_NAME,'x1i10hfl')
+            for button in buttons:
+                try: 
+                    if button.get_attribute('role') == 'button' and button.get_attribute('tabindex') == '0' and 'View all'in button.text:
+                        button.click()
+                except:
+                    continue
+            pictures,idx = findPicture(worker,idx,userAndCode['user'])
+            post= requests.get(self.URL+'/dataJob?',json = {'html':worker.page_source,'user':userAndCode['user'],'pics':pictures},timeout=1000)
+            self.tempStorage.append(post)
     
     def processShortCode(self):
-        state = ''
         while not self.stop:
             state = self.checkState('user')
             if state =='idle':
                 self.sendShortCodeJob()
             else:
                 time.sleep(3)
+    def processPost(self):
+        while not self.stop:
+            state = self.checkState('data')
+            if state =='idle':
+                self.sendPostJob()
                 
 
 def maintain_queue(master):
     time.sleep(5)
     keywords = json.load(open('keywords.json','r'))
-    lengthPerKeyword = 5000//len(keywords)
+    lengthPerKeyword = 1000//len(keywords)
     for keyword in keywords:
         print(keyword)
         master.count =0
         producer.get(f"https://www.instagram.com/explore/search/keyword/?q={keyword}")
-        while master.count<=lengthPerKeyword:
+        while len(master.tempStorage)<lengthPerKeyword:
             if master.linkQueue.qsize()>10:
                 continue
             Producer(producer,master.userQueue)
@@ -79,9 +97,12 @@ def maintain_queue(master):
                     container = finder.find_element(By.CLASS_NAME,'_aaqt')
                     url = container.find_element(By.TAG_NAME,'a')
                     master.linkQueue.put(url.get_attribute('href'))
+        master.storage += master.tempStorage
+        master.tempStorage = []
     master.stop = True
     master.producer.quit()
     master.finder.quit()
+    open('posts.json','w').write(json.dumps(master.storage,ensure_ascii=False,indent=4))
 
 
 if __name__ == "__main__":
