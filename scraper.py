@@ -1,5 +1,6 @@
 from flask import Flask,request,jsonify
-import os,logging,time,pickle,queue,requests,json 
+import os,logging,time,pickle,queue,requests,json
+from flask.scaffold import F 
 from multiprocessing import Process,Pipe
 from lowlevel.ins import findPicture,run
 
@@ -36,8 +37,9 @@ class Scraper:
                 else:
                     self.child.send('scraping-detected')
 
-    def getData(self,pipe):
-        self.postChild = pipe
+    def getData(self,postpipe,respipe):
+        self.postChild = postpipe
+        self. resChild= respipe
         while not self.stop:
             job = self.postChild.recv()
             if job != None:
@@ -47,9 +49,9 @@ class Scraper:
                 # html,user,pics = job.get('html','user','pics')
                 print(job.get('user'))
                 post = run(job['html'],job['user'],job['pics'])
-                print(type(post))
-                self.resParent.send(post)
+                print(post.keys())
                 self.postChild.send('idle')
+                self.resChild.send(json.dumps(post,ensure_ascii=False))
 
 app = Flask(__name__)
 
@@ -58,7 +60,7 @@ def start_child_process(): #Gunicorn does not allow the creation of new processe
     global scraper
     scraper = Scraper()
     Process(target = scraper.getShortCode, args = [scraper.child]).start()
-    Process(target = scraper.getData, args = [scraper.postChild]).start()
+    Process(target = scraper.getData, args = [scraper.postChild,scraper.resChild]).start()
     return "Scraper running"
 
 @app.route('/stop')
@@ -82,7 +84,7 @@ def process_userjob():
 def process_dataJob():
     scraper.postParent.send(request.get_json())
     while True:
-        post= scraper.resChild.recv()
+        post= scraper.resParent.recv()
         if post != None:
             break
         time.sleep(3)
