@@ -44,8 +44,8 @@ class Master():
             self.userlog.append(job)
             print(f"starting scraping job {job} at {self.URL}")
             response = requests.get(url,timeout=1000)
-            print(json.load(response.content))
-            self.codeQueue.put(json.load(response))
+            print(response)
+            self.codeQueue.put(response)
     
     def sendPostJob(self):
         userAndCode= self.codeQueue.get()
