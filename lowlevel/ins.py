@@ -84,9 +84,12 @@ def findPicture(driver,idx = 0,user = {'id':''}):
     
 def run(htmlText,user,pictures):
     soup = BeautifulSoup(htmlText,'html.parser')
-
+    
     posts=copy.deepcopy(user)
-    findPostContent(soup,posts)
-    findComment(soup,posts)
-    posts['pic'] = pictures
+    try:
+        findPostContent(soup,posts)
+        findComment(soup,posts)
+        posts['pic'] = pictures
+    except:
+        posts
     return posts

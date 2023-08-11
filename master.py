@@ -32,7 +32,7 @@ class Master():
         try:
             response = requests.get(f"{self.URL}/state?{urlencode({'process':process,'aaa':''})}", timeout=10000)
             state = response.content.decode("utf-8")
-            print(state)
+            print(process,state)
         except Exception:
             state = "no-answer"
         return state
@@ -42,15 +42,16 @@ class Master():
         if job not in self.userlog:
             url = self.URL + "/userJob?" +urlencode({'url':job,'aaa':''})
             self.userlog.append(job)
-            print(f"starting scraping job {job} at {self.URL}")
-            response = requests.get(url,timeout=1000)
-            print(response)
-            self.codeQueue.put(response)
+            # print(f"starting scraping job {job} at {self.URL}")
+            response = requests.get(url,timeout=1000).json()
+            if response['shortCodes'] != []:
+                self.codeQueue.put(response)
     
     def sendPostJob(self):
         userAndCode= self.codeQueue.get()
+        print(userAndCode)
         idx= 0
-        for shortCode in userAndCode['shorCodes']:
+        for shortCode in userAndCode['shortCodes']:
             worker.get(f"https://www.instagram.com/p/{shortCode}/")
             time.sleep(2)
             buttons = worker.find_elements(By.CLASS_NAME,'x1i10hfl')
@@ -60,24 +61,30 @@ class Master():
                         button.click()
                 except:
                     continue
-            pictures,idx = findPicture(worker,idx,userAndCode['user'])
-            post= requests.get(self.URL+'/dataJob?',json = {'html':worker.page_source,'user':userAndCode['user'],'pics':pictures},timeout=1000)
-            self.tempStorage.append(post)
+            pictures,idx = findPicture(worker,idx,userAndCode['userinfo'])
+            post= requests.post(self.URL+'/dataJob',json = {'html':worker.page_source,'user':userAndCode['userinfo'],'pics':pictures},timeout=1000)
+            if ['text','comments'] in post.json().keys():
+                self.tempStorage.append(post.json())
     
     def processShortCode(self):
         while not self.stop:
             state = self.checkState('user')
-            if state =='idle':
+            if state =='idle' and self.codeQueue.qsize()<10:
                 self.sendShortCodeJob()
             elif state == 'not-started':
                 self.start()
-            else:
-                time.sleep(3)
+            if self.codeQueue.qsize()>=10:
+                print('shortCode queue is full')
+
+            time.sleep(3)
+
     def processPost(self):
         while not self.stop:
             state = self.checkState('data')
             if state =='idle':
                 self.sendPostJob()
+            
+            time.sleep(3)
                 
 
 def maintain_queue(master):
@@ -104,6 +111,7 @@ def maintain_queue(master):
     master.stop = True
     master.producer.quit()
     master.finder.quit()
+    master.worker.quit()
     open('posts.json','w').write(json.dumps(master.storage,ensure_ascii=False,indent=4))
 
 

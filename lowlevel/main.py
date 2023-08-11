@@ -64,6 +64,4 @@ def Producer(driver,userQueue):
     driver.execute_script("arguments[0].scrollIntoView();",containers[-1])
         # print( '\n now has %i posts \n'%(len(posts)))
 
-def Worker():
-    pass
     
