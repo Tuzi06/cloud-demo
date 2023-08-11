@@ -88,11 +88,8 @@ def process_dataJob():
         if post != None:
             break
         time.sleep(3)
-    return jsonify(post)
-    
-@app.route('/download')
-def store_posts():
-    return jsonify(result = scraper.posts)
+    return post
+ 
 
 @app.route('/reset')
 def reset_post():
