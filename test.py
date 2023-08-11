@@ -14,5 +14,5 @@ import requests,pickle
 # driver.quit()
 from bs4 import BeautifulSoup as bs
 html = open('res.html','r').read()
-response = requests.get('http://192.168.1.67:5000/dataJob',data = {'html':html,'user':{'id':'asdf'},'pics':[]},files = {'file':html})
+response = requests.post('http://192.168.1.67:5000/dataJob',data = {'html':html,'user':{'id':'asdf'},'pics':[]},files = {'file':html})
 # driver.quit()
