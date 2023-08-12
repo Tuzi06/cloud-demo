@@ -45,38 +45,35 @@ def findPicture(driver,idx = 0,user = {'id':''}):
     pic = dict()
     try:
         try:
-            wait_for_page(driver,'_aao_',2)
-            container = driver.find_element(By.CLASS_NAME,'_aao_')#找到图片所在的元素位置
-            button = container.find_elements(By.TAG_NAME,'button')
-            # print(len(button))
-            pictures = []
-            while True:
-                try:
-                    imgs = container.find_elements(By.TAG_NAME,'img')
-                    pictures+= [img.get_attribute('src')for img in imgs]
-                    button[-1].click()
-                except:
-                    try:
-                        container.find_element(By.TAG_NAME,'video').click()
-                        button[-1].click()
-                    except:
-                        break
-            pictures = list(set(pictures))
-            # print(pictures)
-            for picture in pictures:
-                pic['%s-%i.png'%(user['id'],idx)] = picture
-                idx += 1 
+            driver.find_element(By.CLASS_NAME,'x1qjc9v5').click()
         except:
             try:
-                container.find_element(By.TAG_NAME,'video').click()
+                wait_for_page(driver,'_aao_',2)
+                container = driver.find_element(By.CLASS_NAME,'_aao_')#找到图片所在的元素位置
+                button = container.find_elements(By.TAG_NAME,'button')
+                # print(len(button))
+                pictures = []
+                while True:
+                    try:
+                        imgs = container.find_elements(By.TAG_NAME,'img')
+                        pictures+= [img.get_attribute('src')for img in imgs]
+                        button[-1].click()
+                    except:
+                        try:
+                            driver.find_element(By.CLASS_NAME,'x1qjc9v5').click()
+                        except:
+                            break
+                pictures = list(set(pictures))
+                # print(pictures)
+                for picture in pictures:
+                    pic['%s-%i.png'%(user['id'],idx)] = picture
+                    idx += 1 
             except:
                 container = driver.find_element(By.CLASS_NAME,'_aagv')
                 temp = container.find_element(By.TAG_NAME,'img')
                 pic['%s-%i.png'%(user['id'],idx)] = temp.get_attribute('src')
                 idx += 1
-        return pic[:5],idx
-       
-
+        return pic,idx
     except:
         # print('has only video')
         return [],idx

@@ -1,3 +1,4 @@
+import random
 from selenium.webdriver.common.by import By
 from urllib.parse import urlencode
 import pickle,queue,os,time,requests,json
@@ -5,12 +6,15 @@ from lowlevel.ins import findPicture
 
 from threading import Thread
 
-from lowlevel.main import prepare_driver,Producer
+from lowlevel.main import prepare_driver,Producer,init
+
+# init()
 
 url = 'https://www.xiaohongshu.com/explore'
-producer = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
-finder = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
-worker = prepare_driver(pickle.load(open('lowlevel/ins_cookies.pkl','rb')),1,False)[0]
+cookies = pickle.load(open('lowlevel/ins_cookies_p.pkl','rb'))
+producer = prepare_driver(cookies,1)[0]
+finder = prepare_driver(cookies,1,False)[0]
+worker = prepare_driver(cookies,1,False)[0]
 class Master():
     def __init__(self,URL):
         self.URL = URL
@@ -19,7 +23,7 @@ class Master():
         self.codeQueue = queue.Queue()
         self.userlog = []
         self.tempStorage = []
-        self.Storage = []
+        self.storage = []
         self.stop = False
 
     def start(self):
@@ -32,7 +36,7 @@ class Master():
         try:
             response = requests.get(f"{self.URL}/state?{urlencode({'process':process,'aaa':''})}", timeout=10000)
             state = response.content.decode("utf-8")
-            print(process,state)
+            # print(process,state)d
         except Exception:
             state = "no-answer"
         return state
@@ -49,7 +53,7 @@ class Master():
     
     def sendPostJob(self):
         userAndCode= self.codeQueue.get()
-        print(userAndCode)
+        # print(userAndCode)
         idx= 0
         for shortCode in userAndCode['shortCodes']:
             worker.get(f"https://www.instagram.com/p/{shortCode}/")
@@ -63,20 +67,23 @@ class Master():
                     continue
             pictures,idx = findPicture(worker,idx,userAndCode['userinfo'])
             post= requests.post(self.URL+'/dataJob',json = {'html':worker.page_source,'user':userAndCode['userinfo'],'pics':pictures},timeout=1000)
-            if ['text','comments'] in post.json().keys():
+            if 'text' in post.json().keys() and 'comments'in post.json().keys():
                 self.tempStorage.append(post.json())
+            print(f"scrap {len(self.tempStorage)} posts")
     
     def processShortCode(self):
         while not self.stop:
+            if self.codeQueue.qsize()>=10:
+                print('shortCode queue is full')
+                continue
+            time.sleep(10)
             state = self.checkState('user')
-            if state =='idle' and self.codeQueue.qsize()<10:
+            if state =='idle':
                 self.sendShortCodeJob()
             elif state == 'not-started':
                 self.start()
-            if self.codeQueue.qsize()>=10:
-                print('shortCode queue is full')
 
-            time.sleep(3)
+            time.sleep(5)
 
     def processPost(self):
         while not self.stop:
@@ -84,13 +91,14 @@ class Master():
             if state =='idle':
                 self.sendPostJob()
             
-            time.sleep(3)
+            time.sleep(5)
                 
 
 def maintain_queue(master):
     time.sleep(5)
     keywords = json.load(open('keywords.json','r'))
-    lengthPerKeyword = 1000//len(keywords)
+    random.shuffle(keywords)
+    lengthPerKeyword = 5000//len(keywords)
     for keyword in keywords:
         print(keyword)
         master.count =0
@@ -107,7 +115,11 @@ def maintain_queue(master):
                     url = container.find_element(By.TAG_NAME,'a')
                     master.linkQueue.put(url.get_attribute('href'))
         master.storage += master.tempStorage
+        print(f"we now scrapped {len(master.storage)} totally")
         master.tempStorage = []
+        master.userQueue = queue.Queue()
+        master.linkQueue = queue.Queue()
+        master.codeQueue = queue.Queue()
     master.stop = True
     master.producer.quit()
     master.finder.quit()
