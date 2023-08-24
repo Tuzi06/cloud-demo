@@ -1,6 +1,5 @@
 from flask import Flask,request,jsonify
 import os,logging,time,pickle,queue,requests,json
-from flask.scaffold import F 
 from multiprocessing import Process,Pipe
 from lowlevel.ins import findPicture,run
 
