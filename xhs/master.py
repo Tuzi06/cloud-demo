@@ -55,11 +55,12 @@ def init():
     pickle.dump(cookies,open('lowlevel/xhs_cookies.pkl','wb'))
 
 if __name__ == '__main__':
-    init()
+    # init()
     url = os.getenv("URL")
     print(url)
     if url is None:
         url = 'http://192.168.1.67:5000'
         # url = "https://scraper-394300.uc.r.appspot.com" #local mode
     master = Master(url)
+    time.sleep(5)
     master.process()

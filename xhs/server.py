@@ -79,9 +79,12 @@ def start():
 
 @app.route('/state')
 def fetchState():
-    if scraper.stateParent.poll(timeout=3):
-        scraper.state = scraper.stateParent.recv()
-    return scraper.state
+    try:
+        if scraper.stateParent.poll(timeout=3):
+            scraper.state = scraper.stateParent.recv()
+        return scraper.state
+    except:
+        return 'cold'
 
 @app.route('/processJob')
 def processJob():
