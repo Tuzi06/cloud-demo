@@ -20,7 +20,7 @@ def prepare_driver(cookies,workers,headless = True):
         options.add_argument('headless')
     for _ in range(workers):
         driver = Chrome(options = options,service=service)
-        driver.get('https://wwww.xiaohongshu.com/explore')
+        driver.get('https://www.xiaohongshu.com/explore')
         for cookie in cookies: 
             if isinstance(cookie.get('expiry'),float):
                 cookie['expiry'] = int(cookie['expiry'])
