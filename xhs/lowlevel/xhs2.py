@@ -55,8 +55,11 @@ def findNoteContent(soup,content):
     content['tag'] = [tag.text for tag in soup.findAll('span',class_='tag')]
 
 def findComment(soup,content):
+    if soup.find('span','chat-wrapper').text == '0':
+        content['comments'] = []
+        return
     container = soup.find('div',class_='list-container')
-    commentList = container.findAll('div',class_='comment-item',recursive=False)
+    commentList = container.findAll('div',class_='comment-item',recursive=False) 
     comments = []
     for commentItem in commentList:
         comment = dict()
@@ -64,14 +67,18 @@ def findComment(soup,content):
         if commentItem.find('div',class_='reply-container'):
             comment['replys'] = [{replyItem.find('div',class_='author').text : replyItem.find('div',class_='content').text} for replyItem in commentItem.find('div',class_='reply-container').findAll('div',class_='comment-item')]
         comments.append(comment)
-    content['comments'] = comments
+    content['comments'] = comments[:5]
     
 def findPicture(soup,content,idx):
-    pics = soup.find('div',class_='swiper-wapper').findAll('div')
+    try:
+        pics = soup.find('div',class_='swiper-wrapper').findAll('div')
+    except:
+        pics = [soup.find('xg-poster')]
     photoUrls = []
     for pic in pics:
-        photoUrls.append({f"{content['user-id']}-{idx}":pic['style'].split(';')[1]})
+        photoUrls.append({f"{content['user-id']}-{idx}":pic['style'].split('"')[1].replace('&quot','')})
         idx += 1
+    content['post']['pictures'] = photoUrls
     return idx
         
 def grabing(soup,user,idx):
@@ -79,5 +86,5 @@ def grabing(soup,user,idx):
     post['post'] = dict()
     findNoteContent(soup,post['post'])
     findComment(soup,post['post'])
-    # idx = findPicture(soup,post['post'],idx)
+    idx = findPicture(soup,post,idx)
     return idx,post

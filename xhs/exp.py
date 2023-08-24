@@ -1,56 +1,24 @@
-url = 'https://www.xiaohongshu.com/explore/64aaf8b8000000001c00f0dc'
-
-import asyncio
-from re import A
-import sys
-import time
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QUrl
-from PyQt6.QtWebEngineCore import QWebEnginePage
+import pickle,json
+from lowlevel.xhs2 import prepare_driver,getUser,grabing,wait_for_page
 from bs4 import BeautifulSoup as bs
-
-# class client (QWidget):
-#     def __init__(self,url):
-#         super().__init__()
-#         layout = QVBoxLayout()
-#         self.view = QWebEngineView()
-#         layout.addWidget(self.view)
-#         self.view.setUrl(QUrl(url))
-
-#         self.setLayout(layout)
-#         self.show()
-
-# class client(QWebEnginePage):
-#     def __init__(self,url):
-#         self.html = ''
-#         self.app = QApplication(sys.argv)
-#         QWebEnginePage.__init__(self)
-#         self.loadFinished.connect(self.dosomething)
-#         self.load(QUrl(url))
-#         self.app.exec()
-       
-#     def dosomething(self):
-#         print('ifnish')
-#         time.sleep(20)
-#         self.app.quit()
-
-#     def gethtml(self,html):
-#         self.html = html
-
-# app = QApplication(sys.argv)
-# webclient = client('https://www.xiaohongshu.com/explore/64d4055f000000001201b80f')
-
-# source = webclient.html
-# # print(source)
-
-from requests_html import HTMLSession
-
-session = HTMLSession()
-
-r = session.get(url)
-time.sleep(10)
-r.html.render(sleep = 10,keep_page = True)
-soup = bs(r.html.html,'lxml')
-open('a.html','w').write(r.html.html)
-
-
+import time
+driver = prepare_driver([],1)[0]
+scraper = prepare_driver([],1,False)[0]
+time.sleep(5)
+driver.get('https://www.xiaohongshu.com/user/profile/5a6d37f911be100505ad38d2')
+time.sleep(2)
+soup = bs(driver.page_source,'html.parser')
+user = getUser(soup)
+links = ["https://www.xiaohongshu.com"+a['href'] for a in soup.findAll('a','cover ld mask')]
+posts = []
+idx = 0
+for link in links[:5]:
+    print(link)
+    scraper.get(link)
+    wait_for_page(scraper,'comment-item')
+    soup1 = bs(scraper.page_source,'html.parser')
+    idx,post= grabing(soup1,user,idx)
+    posts.append(post)
+driver.quit()
+scraper.quit()
+print(json.dumps(posts,ensure_ascii=False,indent=4))

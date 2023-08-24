@@ -10,13 +10,13 @@ from threading import Thread
 class Scraper():
     def __init__(self):
         self.state = 'ready'
-        # self.options = webdriver.ChromeOptions()
-        # self.options.add_argument('disable-blink-features=AutomationControlled')
-        # self.options.add_argument('headless')
-        # self.userInfoScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
-        # self.postScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
-        self.userInfoScraper=prepare_driver([],1)[0]
-        self.postScraper=prepare_driver([],1)[0]
+        self.options = webdriver.ChromeOptions()
+        self.options.add_argument('disable-blink-features=AutomationControlled')
+        self.options.add_argument('headless')
+        self.userInfoScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
+        self.postScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
+        # self.userInfoScraper=prepare_driver([],1)[0]
+        # self.postScraper=prepare_driver([],1)[0]
         self.stateParent,self.stateChild = Pipe()
         self.requestParent,self.requestChild = Pipe()
         self.responseParent,self.responseChild = Pipe()
