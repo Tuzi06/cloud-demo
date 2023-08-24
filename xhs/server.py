@@ -112,3 +112,7 @@ def stop():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
+
+
+
+    #docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=5 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true selenium/standalone-chrome
