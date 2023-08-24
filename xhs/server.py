@@ -5,6 +5,7 @@ from multiprocessing import Process,Pipe
 from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 from lowlevel.xhs2 import prepare_driver, wait_for_page,getUser,grabing
+from threading import Thread
 
 class Scraper():
     def __init__(self):
@@ -14,55 +15,59 @@ class Scraper():
         # self.options.add_argument('headless')
         # self.userInfoScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
         # self.postScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
-        self.userInfoScraper=prepare_driver([],1,False)[0]
-        self.postScraper=prepare_driver([],1,False)[0]
-        self.userInfoPipline = Queue()
-        self.stateParent,self.stateChild = Pipe
-        self.requestParent,self.requestChild = Pipe
-        self.responseParent,self.responseChild = Pipe
+        self.userInfoScraper=prepare_driver([],1)[0]
+        self.postScraper=prepare_driver([],1)[0]
+        self.stateParent,self.stateChild = Pipe()
+        self.requestParent,self.requestChild = Pipe()
+        self.responseParent,self.responseChild = Pipe()
         self.userLog = []
         self.stop = False
 
-    def getUserInfo(self,requestChild):
+    def getUserInfo(self,requestChild,userInfoPipline):
         self.requestChild = requestChild
         while not self.stop:
-            userlink = self.requestChild.recv()
-            if not userlink:
+            job = self.requestChild.recv()
+            if not job:
                 time.sleep(3)
                 continue
+            userlink,_ = job.values()
+            print(userlink)
             self.userInfoScraper.get(userlink)
             wait_for_page(self.userInfoScraper,'note-item')
             soup = bs(self.userInfoScraper.page_source,'html.parser')
             userInfo = getUser(soup)
+            print(userInfo)
             if userlink not in self.userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
                 self.userLog.append(userlink)
-                self.userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
+                userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
             else:
-                self.userInfoPipline.put({'userInfo':userInfo,'links':[]})
+                userInfoPipline.put({'userInfo':userInfo,'links':[]})
 
-    def getPostData(self,responseParent):
+    def getPostData(self,responseParent,userInfoPipline):
         self.responseParent = responseParent
+
         while not self.stop:
-            if self.userInfoPipline.empty():
+            print(userInfoPipline.qsize())
+            if userInfoPipline.empty():
                 time.sleep(3)
                 continue
-            userInfo,links = self.userInfoPipline.get().values()
-            if links == []:
-                 self.responseParent.send([])
+            userInfo,links = userInfoPipline.get().values()
+            print(userInfo,links)
             idx = 0
             posts = []
             for link in links:
-                self.postScraper.get(link)
+                self.postScraper.get('https://www.xiaohongshu.com/'+link)
                 wait_for_page(self.postScraper,'note-content')
                 soup = bs(self.postScraper.page_source,'html.parser')
                 idx,post= grabing(soup,userInfo,idx)
                 posts.append(post)
+            print(posts)
             self.responseParent.send(posts)
     
-    def maintainPipline(self,stateChild):
+    def maintainPipline(self,stateChild,userInfoPipline):
         self.stateChild = stateChild
         while not self.stop:
-            if self.userInfoPipline.qsize()>10:
+            if userInfoPipline.qsize()>10:
                 self.stateChild.send('full')
             else:
                 self.stateChild.send('ready')
@@ -71,11 +76,14 @@ app = Flask(__name__)
 
 @app.route('/start')
 def start():
+    userInfoPipline = Queue()
     global scraper
     scraper = Scraper()
-    Process(target=scraper.getUserInfo,args=[scraper.requestChild]).start()
-    Process(target=scraper.getPostData,args=[scraper.responseParent]).start()
-    Process(target=scraper.maintainPipline,args=[scraper.stateChild]).start()
+    Thread(target=scraper.getUserInfo,args=[scraper.requestChild,userInfoPipline]).start()
+    Thread(target=scraper.getPostData,args=[scraper.responseParent,userInfoPipline]).start()
+    Thread(target=scraper.maintainPipline,args=[scraper.stateChild,userInfoPipline]).start()
+    time.sleep(10)
+    return 'finish starting'
 
 @app.route('/state')
 def fetchState():
@@ -86,14 +94,15 @@ def fetchState():
     except:
         return 'cold'
 
-@app.route('/processJob')
+@app.route('/processJob',methods = ['GET','POST'])
 def processJob():
-    scraper.requestParent.send(request.data)
+    scraper.requestParent.send(request.get_json())
     while True:
         posts = scraper.responseChild.recv()
-        if posts:
+        if posts != None:
             break
         time.sleep(3)
+    print('post',posts)
     return posts
 
 @app.route('/stop')
