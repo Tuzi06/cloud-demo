@@ -15,7 +15,7 @@ class Master():
         self.posts = []
 
     def sendJobs(self,userlink):
-        posts = requests.get(f"{self.url}/processJob",data={'userlink':userlink},timeout = 1000)
+        posts = requests.get(f"{self.url}/processJob",json={'userlink':userlink,'aaa':'aaa'},timeout = 1000)
         self.posts += posts
 
     def checkState(self):
@@ -29,10 +29,12 @@ class Master():
     def process(self):
         while len(self.posts)<100000:
             time.sleep(5)
+            print(self.checkState())
             if self.checkState() == 'full':
                 continue
             elif self.checkState() == 'cold':
-                requests.get("{self.url}/start")
+                requests.get(f"{self.url}/start",timeout=1000)
+                time.sleep(10)
             else:
                 wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
                 userlinks = [wrapper.find_element(By.TAG_NAME,'a').get_attribute('href') for wrapper in wrappers]
