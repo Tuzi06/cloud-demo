@@ -46,9 +46,9 @@ class Master():
 def init():
     soption = ChromeOptions()
     soption.add_argument('disable-blink-features=AutomationControlled')
-    service = Service(executable_path= 'lowlevel/chromedriver_mac_arm64/chromedriver')
+    service = Service(executable_path= 'lowlevel/chromedriver-mac-arm64/chromedriver')
     driver = Chrome(options = soption,service=service)
-    driver.get(url)
+    driver.get('https://wwww.xiaohongshu.com/explore')
     input('pause for login ... press enter when finished')
     cookies = driver.get_cookies()
     driver.quit()
