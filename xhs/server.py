@@ -1,22 +1,20 @@
-from queue import Queue
 import time
 from flask import Flask,request
-from multiprocessing import Process,Pipe
+from multiprocessing import Process,Pipe,Queue
 from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 from lowlevel.xhs2 import prepare_driver, wait_for_page,getUser,grabing
-from threading import Thread
 
 class Scraper():
     def __init__(self):
         self.state = 'ready'
         self.options = webdriver.ChromeOptions()
-        self.options.add_argument('disable-blink-features=AutomationControlled')
-        self.options.add_argument('headless')
-        self.userInfoScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
-        self.postScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
-        # self.userInfoScraper=prepare_driver([],1)[0]
-        # self.postScraper=prepare_driver([],1)[0]
+        # self.options.add_argument('disable-blink-features=AutomationControlled')
+        # self.options.add_argument('headless')
+        # self.userInfoScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
+        # self.postScraper = webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options)
+        self.userInfoScraper=prepare_driver([],1)[0]
+        self.postScraper=prepare_driver([],1,False)[0]
         self.stateParent,self.stateChild = Pipe()
         self.requestParent,self.requestChild = Pipe()
         self.responseParent,self.responseChild = Pipe()
@@ -56,8 +54,8 @@ class Scraper():
             idx = 0
             posts = []
             for link in links:
-                self.postScraper.get('https://www.xiaohongshu.com/'+link)
-                wait_for_page(self.postScraper,'note-content')
+                self.postScraper.get('https://www.xiaohongshu.com'+link)
+                wait_for_page(self.postScraper,'comment-item')
                 soup = bs(self.postScraper.page_source,'html.parser')
                 idx,post= grabing(soup,userInfo,idx)
                 posts.append(post)
@@ -79,9 +77,9 @@ def start():
     userInfoPipline = Queue()
     global scraper
     scraper = Scraper()
-    Thread(target=scraper.getUserInfo,args=[scraper.requestChild,userInfoPipline]).start()
-    Thread(target=scraper.getPostData,args=[scraper.responseParent,userInfoPipline]).start()
-    Thread(target=scraper.maintainPipline,args=[scraper.stateChild,userInfoPipline]).start()
+    Process(target=scraper.getUserInfo,args=[scraper.requestChild,userInfoPipline]).start()
+    Process(target=scraper.getPostData,args=[scraper.responseParent,userInfoPipline]).start()
+    Process(target=scraper.maintainPipline,args=[scraper.stateChild,userInfoPipline]).start()
     time.sleep(10)
     return 'finish starting'
 
@@ -108,6 +106,8 @@ def processJob():
 @app.route('/stop')
 def stop():
     scraper.stop = True
+    scraper.postScraper.quit()
+    scraper.userInfoScraper.quit()
     return 'stopped'
 
 if __name__ == "__main__":

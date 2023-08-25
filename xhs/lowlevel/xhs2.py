@@ -46,7 +46,7 @@ def getUser(soup):
     user['follow'] = soup.findAll('span',class_='count')[1].text
     user['user-info'] = soup.find('div',class_='user-desc').text or ''
     user['user-sex'] = str(soup.find('div',class_='gender').find('use')['xlink:href'][1:]) or ''
-    user['user-tag'] = [tag.text for tag in soup.findAll('div',class_='tag_item')]
+    user['user-tag'] = [tag.text for tag in soup.findAll('div',class_='tag-item')]
     return user
 
 def findNoteContent(soup,content):
