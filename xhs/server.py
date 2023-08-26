@@ -1,7 +1,6 @@
 import time
-import multiprocessing as mp
 from flask import Flask,request
-from multiprocessing import Process,Pipe,Manager
+from multiprocessing import Process,Pipe,Manager,Queue
 from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 from threading import Thread
@@ -23,7 +22,7 @@ class Scraper():
     
 
     def userPageScraper(self,userlinkPool):
-        return 
+        print('started')
         while not self.stop:
             if userlinkPool.empty():
                 time.sleep(3)
@@ -78,21 +77,21 @@ app = Flask(__name__)
 
 @app.route('/start')
 def start():
-    mp.get_context('spawn')
-    userInfoPipline =mp.Queue()
+    userInfoPipline =Queue()
 
-    global userlinkPool
-    userlinkPool = mp.Queue()
+    # global userlinkPool
+    # userlinkPool = Queue()
 
-    global posts
-    posts = Manager().list()
-    userLog = Manager().list()
+    # global posts
+    # posts = Manager().list()
+    # userLog = Manager().list()
 
     global scraper
     scraper = Scraper()
 
     for browser in scraper.userInfoBrowsers:
-        Process(target=scraper.userPageScraper,args=[userlinkPool]).start()
+        p = Process(target=scraper.userPageScraper,args=[userInfoPipline])
+        p.start()
     return 'ffff'
     Process(target=scraper.postPageScrapeFarm,args=[userInfoPipline,posts]).start()
     return 'ffff'
