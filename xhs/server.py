@@ -3,19 +3,19 @@ from flask import Flask,request
 from multiprocessing import Process,Pipe,Manager,Queue
 from selenium import webdriver
 from bs4 import BeautifulSoup as bs
-from threading import Thread
 from lowlevel.xhs2 import prepare_driver, wait_for_page,getUser,grabing
 
 class Scraper():
     def __init__(self):
         self.state = 'ready'
-        # self.options = webdriver.ChromeOptions()
-        # self.options.add_argument('disable-blink-features=AutomationControlled')
-        # self.options.add_argument('headless')
-        # self.userInfoBrowser = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(10)]
-        # self.postBrowser = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(10)]
-        self.userInfoBrowsers=prepare_driver([],1)
-        self.postBrowsers=prepare_driver([],1)
+        self.options = webdriver.ChromeOptions()
+        self.options.add_argument('disable-blink-features=AutomationControlled')
+        self.options.add_argument('headless')
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.userInfoBrowsers = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(8)]
+        self.postBrowsers = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(6)]
+        # self.userInfoBrowsers=prepare_driver([],1,False)
+        # self.postBrowsers=prepare_driver([],1,False)
         self.stateParent,self.stateChild = Pipe()
         self.stop = False
         time.sleep(5)
@@ -31,12 +31,17 @@ class Scraper():
             browser.get(userlink)
             wait_for_page(browser,'note-item')
             soup = bs(browser.page_source,'html.parser')
-            userInfo = getUser(soup)
+            try:
+                userInfo = getUser(soup)
+            except:
+                continue
             if userlink not in userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
-                self.userLog.append(userlink)
+                userLog.append(userlink)
+                print(userInfo)
                 userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
             else:
                 userInfoPipline.put({'userInfo':userInfo,'links':[]})
+        browser.quit()
 
     def postPageScrapers(self,browser,userInfoPipline,posts):
         while not self.stop:
@@ -46,30 +51,35 @@ class Scraper():
             userInfo,links = userInfoPipline.get().values()
             idx = 0
             for link in links:
+                if self.stop:
+                    break
+                browser.get('https://www.xiaohongshu.com'+link)
+                wait_for_page(browser,'comment-item')
+                soup = bs(browser.page_source,'html.parser')
                 try:
-                    browser.get('https://www.xiaohongshu.com'+link)
-                    wait_for_page(browser,'comment-item')
-                    soup = bs(browser.page_source,'html.parser')
                     idx,post= grabing(soup,userInfo,idx)
-                    posts.append(post)
                 except:
+                    print('fail on post')
                     continue
+                post['url'] = link
+                posts.append(post)
+        browser.quit()
+    
 
     def maintainPipline(self,stateChild,userlinkPool):
         self.stateChild = stateChild
         while not self.stop:
-            time.sleep(1)
-            if userlinkPool.qsize()>10:
+            time.sleep(2)
+            if userlinkPool.qsize()>10 and self.state != 'full':
                 self.stateChild.send('full')
-                print(userlinkPool.qsize())
-            else:
-                print('not full yet')
+            elif self.state != 'ready':
                 self.stateChild.send('ready')
 
 app = Flask(__name__)
 
 @app.route('/start')
 def start():
+    global userInfoPipline
     userInfoPipline =Queue()
 
     global userlinkPool
@@ -77,16 +87,20 @@ def start():
 
     global posts
     posts = Manager().list()
+    global userLog
     userLog = Manager().list()
 
     global scraper
     scraper = Scraper()
-
+    global processes
+    processes = []
     for browser in scraper.userInfoBrowsers:
-        Process(target=scraper.userPageScraper,args=[browser,userlinkPool,userInfoPipline,userLog]).start()
+        processes.append(Process(target=scraper.userPageScraper,args=[browser,userlinkPool,userInfoPipline,userLog]))
     for browser in scraper.postBrowsers:
-        Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]).start()
-    Process(target=scraper.maintainPipline,args=[scraper.stateChild,userlinkPool]).start()
+         processes.append(Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]))
+    processes.append(Process(target=scraper.maintainPipline,args=[scraper.stateChild,userlinkPool]))
+    for process in processes:
+        process.start()
     return 'finish starting'
 
 @app.route('/state')
@@ -107,8 +121,10 @@ def processJob():
 @app.route('/stop')
 def stop():
     scraper.stop = True
-    for browser in scraper.postBrowsers+scraper.userInfoBrowsers:
-        browser.quit()
+    # for process in processes:
+    #     process.kill()
+    # for browser in scraper.postBrowsers+scraper.userInfoBrowsers:
+    #     browser.quit()
     return list(posts)
 
 @app.route('/progress')
@@ -121,3 +137,4 @@ if __name__ == "__main__":
 
 
     #docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=5 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true selenium/standalone-chrome
+    #docker kill $(docker ps -q)
