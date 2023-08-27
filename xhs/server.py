@@ -15,62 +15,55 @@ class Scraper():
         # self.userInfoBrowser = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(10)]
         # self.postBrowser = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(10)]
         self.userInfoBrowsers=prepare_driver([],1)
-        self.postBrowsers=prepare_driver([],1,False)
+        self.postBrowsers=prepare_driver([],1)
         self.stateParent,self.stateChild = Pipe()
         self.stop = False
-        time.sleep(10)
+        time.sleep(5)
     
 
-    def userPageScraper(self,userlinkPool):
+    def userPageScraper(self,browser,userlinkPool,userInfoPipline,userLog):
         print('started')
         while not self.stop:
             if userlinkPool.empty():
                 time.sleep(3)
                 continue
-            # userlink = userlinkPool.get()
-            # browser.get(userlink)
-            # wait_for_page(browser,'note-item')
-            # soup = bs(browser.page_source,'html.parser')
-            # userInfo = getUser(soup)
-            # if userlink not in userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
-            #     self.userLog.append(userlink)
-            #     userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
-            # else:
-                # userInfoPipline.put({'userInfo':userInfo,'links':[]})
+            userlink = userlinkPool.get()
+            browser.get(userlink)
+            wait_for_page(browser,'note-item')
+            soup = bs(browser.page_source,'html.parser')
+            userInfo = getUser(soup)
+            if userlink not in userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
+                self.userLog.append(userlink)
+                userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
+            else:
+                userInfoPipline.put({'userInfo':userInfo,'links':[]})
 
-    def postPageScrapeFarm(self,userInfoPipline,posts):
-        def load(browser,userInfoPipline,posts):
-            while True:
-                if userInfoPipline.empty:
-                    time.sleep(3)
-                    continue
-                userInfo,links = userInfoPipline.get().values()
-                idx = 0
-                for link in links:
-                    try:
-                        browser.get('https://www.xiaohongshu.com'+link)
-                        wait_for_page(browser,'comment-item')
-                        soup = bs(browser.page_source,'html.parser')
-                        idx,post= grabing(soup,userInfo,idx)
-                        posts.append(post)
-                    except:
-                        continue
-
-        processes = []
-        for browser in self.postBrowsers:
-            processes.append(Process(target=load,args=[browser,userInfoPipline,posts]))
-            processes[-1].start()
+    def postPageScrapers(self,browser,userInfoPipline,posts):
         while not self.stop:
-            continue
-        for process in processes:
-            process.kill()
-    
+            if userInfoPipline.empty():
+                time.sleep(3)
+                continue
+            userInfo,links = userInfoPipline.get().values()
+            idx = 0
+            for link in links:
+                try:
+                    browser.get('https://www.xiaohongshu.com'+link)
+                    wait_for_page(browser,'comment-item')
+                    soup = bs(browser.page_source,'html.parser')
+                    idx,post= grabing(soup,userInfo,idx)
+                    posts.append(post)
+                except:
+                    continue
+
     def maintainPipline(self,stateChild,userlinkPool):
         self.stateChild = stateChild
         while not self.stop:
+            time.sleep(1)
             if userlinkPool.qsize()>10:
                 self.stateChild.send('full')
+                print(userlinkPool.qsize())
             else:
+                print('not full yet')
                 self.stateChild.send('ready')
 
 app = Flask(__name__)
@@ -79,24 +72,21 @@ app = Flask(__name__)
 def start():
     userInfoPipline =Queue()
 
-    # global userlinkPool
-    # userlinkPool = Queue()
+    global userlinkPool
+    userlinkPool = Queue()
 
-    # global posts
-    # posts = Manager().list()
-    # userLog = Manager().list()
+    global posts
+    posts = Manager().list()
+    userLog = Manager().list()
 
     global scraper
     scraper = Scraper()
 
     for browser in scraper.userInfoBrowsers:
-        p = Process(target=scraper.userPageScraper,args=[userInfoPipline])
-        p.start()
-    return 'ffff'
-    Process(target=scraper.postPageScrapeFarm,args=[userInfoPipline,posts]).start()
-    return 'ffff'
+        Process(target=scraper.userPageScraper,args=[browser,userlinkPool,userInfoPipline,userLog]).start()
+    for browser in scraper.postBrowsers:
+        Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]).start()
     Process(target=scraper.maintainPipline,args=[scraper.stateChild,userlinkPool]).start()
-    time.sleep(10)
     return 'finish starting'
 
 @app.route('/state')
@@ -104,6 +94,7 @@ def fetchState():
     try:
         if scraper.stateParent.poll(timeout=3):
             scraper.state = scraper.stateParent.recv()
+            print(scraper.stateParent.recv())
         return scraper.state
     except:
         return 'cold'
