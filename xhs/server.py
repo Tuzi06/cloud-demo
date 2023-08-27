@@ -28,12 +28,13 @@ class Scraper():
                 time.sleep(3)
                 continue
             userlink = userlinkPool.get()
-            browser.get(userlink)
-            wait_for_page(browser,'note-item')
-            soup = bs(browser.page_source,'html.parser')
             try:
+                browser.get(userlink)
+                wait_for_page(browser,'note-item')
+                soup = bs(browser.page_source,'html.parser')
                 userInfo = getUser(soup)
             except:
+                print('fail on user')
                 continue
             if userlink not in userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
                 userLog.append(userlink)
@@ -53,10 +54,10 @@ class Scraper():
             for link in links:
                 if self.stop:
                     break
-                browser.get('https://www.xiaohongshu.com'+link)
-                wait_for_page(browser,'comment-item')
-                soup = bs(browser.page_source,'html.parser')
                 try:
+                    browser.get('https://www.xiaohongshu.com'+link)
+                    wait_for_page(browser,'comment-item')
+                    soup = bs(browser.page_source,'html.parser')
                     idx,post= grabing(soup,userInfo,idx)
                 except:
                     print('fail on post')
