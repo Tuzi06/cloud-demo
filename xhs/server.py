@@ -1,4 +1,4 @@
-import time
+import time,socket
 from flask import Flask,request
 from multiprocessing import Process,Pipe,Manager,Queue
 from selenium import webdriver
@@ -12,8 +12,9 @@ class Scraper():
         self.options.add_argument('disable-blink-features=AutomationControlled')
         self.options.add_argument('headless')
         self.options.add_argument("--disable-dev-shm-usage")
-        self.userInfoBrowsers = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(8)]
-        self.postBrowsers = [webdriver.Remote(command_executor='http://localhost:4444/wd/hub',options=self.options) for _ in range(6)]
+        url = socket.gethostbyname(socket.gethostname())
+        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(8)]
+        self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(6)]
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
         self.stateParent,self.stateChild = Pipe()
