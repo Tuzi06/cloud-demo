@@ -2,3 +2,4 @@ Flask
 gunicorn
 requests
 selenium==4.10.0
+bs4
