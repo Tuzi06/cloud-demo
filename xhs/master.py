@@ -29,7 +29,7 @@ class Master():
     def process(self):
         requestnum = 100
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",timeout=1000)
+                requests.get(f"{self.url}/start",data = {'url':self.url.split(':')[0]},timeout=1000)
                 time.sleep(10)
         while int(requests.get(f"{self.url}/progress").content.decode("utf-8"))<requestnum:
             wait_for_page(self.browser,'author-wrapper')

@@ -6,13 +6,12 @@ from bs4 import BeautifulSoup as bs
 from lowlevel.xhs2 import prepare_driver, wait_for_page,getUser,grabing
 
 class Scraper():
-    def __init__(self):
+    def __init__(self,url):
         self.state = 'ready'
         self.options = webdriver.ChromeOptions()
         self.options.add_argument('disable-blink-features=AutomationControlled')
         self.options.add_argument('headless')
         self.options.add_argument("--disable-dev-shm-usage")
-        url = socket.gethostbyname(socket.gethostname())
         self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(8)]
         self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(6)]
         # self.userInfoBrowsers=prepare_driver([],1,False)
@@ -91,9 +90,9 @@ def start():
     posts = Manager().list()
     global userLog
     userLog = Manager().list()
-
+    url = request.get_json()['url']
     global scraper
-    scraper = Scraper()
+    scraper = Scraper(url)
     global processes
     processes = []
     for browser in scraper.userInfoBrowsers:
