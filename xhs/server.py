@@ -18,7 +18,6 @@ class Scraper():
         # self.postBrowsers=prepare_driver([],1,False)
         self.stateParent,self.stateChild = Pipe()
         self.stop = False
-        time.sleep(5)
     
 
     def userPageScraper(self,browser,userlinkPool,userInfoPipline,userLog):
@@ -129,6 +128,6 @@ def checkProgress():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
-    
+
     #docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=30 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true selenium/standalone-chrome
     #docker kill $(docker ps -q)
