@@ -36,10 +36,16 @@ class Scraper():
             except:
                 print('fail on user')
                 continue
-            if userlink not in userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
-                userLog.append(userlink)
-                print(userInfo)
-                userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
+            try: 
+                if  int(userInfo['follow'])>=10000:
+                    userLog.append(userlink)
+                    print(userInfo)
+                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})                                 
+            except:
+                if userlink not in userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
+                    userLog.append(userlink)
+                    print(userInfo)
+                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
             else:
                 userInfoPipline.put({'userInfo':userInfo,'links':[]})
         browser.quit()
