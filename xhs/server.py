@@ -90,7 +90,7 @@ def start():
     posts = Manager().list()
     global userLog
     userLog = Manager().list()
-    url = request.get_json()['url']
+    url,_ = request.get_json().values()
     global scraper
     scraper = Scraper(url)
     global processes
