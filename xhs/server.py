@@ -36,10 +36,10 @@ class Scraper():
             except:
                 print('fail on user')
                 continue
+            print(userInfo['follow'])
             try: 
                 if  int(userInfo['follow'])>=10000:
                     userLog.append(userlink)
-                    print(userInfo)
                     userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})                                 
             except:
                 if userlink not in userLog and ('W' in userInfo['follow'] or '万' in userInfo['follow']):
@@ -86,20 +86,13 @@ app = Flask(__name__)
 
 @app.route('/start')
 def start():
-    global userInfoPipline
+    global userlinkPool,posts,userLog,scraper,processes
     userInfoPipline =Queue()
-
-    global userlinkPool
     userlinkPool = Queue()
-
-    global posts
     posts = Manager().list()
-    global userLog
     userLog = Manager().list()
     url,_ = request.get_json().values()
-    global scraper
     scraper = Scraper(url)
-    global processes
     processes = []
     for browser in scraper.userInfoBrowsers:
         processes.append(Process(target=scraper.userPageScraper,args=[browser,userlinkPool,userInfoPipline,userLog]))
@@ -128,10 +121,6 @@ def processJob():
 @app.route('/stop')
 def stop():
     scraper.stop = True
-    # for process in processes:
-    #     process.kill()
-    # for browser in scraper.postBrowsers+scraper.userInfoBrowsers:
-    #     browser.quit()
     return list(posts)
 
 @app.route('/progress')
@@ -140,8 +129,6 @@ def checkProgress():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
-
-
-
-    #docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=5 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true selenium/standalone-chrome
+    
+    #docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=30 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true selenium/standalone-chrome
     #docker kill $(docker ps -q)
