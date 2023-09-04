@@ -1,10 +1,4 @@
 Flask
-google==3.0.0
-pandas
-google-cloud-logging
-google-cloud-storage
 gunicorn
-gcsfs
-pexpect
 requests
 selenium==4.10.0

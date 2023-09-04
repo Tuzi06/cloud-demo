@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import pickle
@@ -12,11 +13,10 @@ from lowlevel.xhs2 import prepare_driver,wait_for_page
 class Master():
     def __init__(self,url):
         self.url = url
-        self.browser = prepare_driver(pickle.load(open('lowlevel/xhs_cookies.pkl','rb')),1)[0]
-
+        self.browser = prepare_driver(pickle.load(open('lowlevel/xhs_cookies.pkl','rb')),1,False)[0]
 
     def sendJobs(self,userlink):
-        print(self.url,userlink)
+        print(userlink)
         requests.get(f"{self.url}/processJob",json={'userlink':userlink,'aaa':'aaa'},timeout = 1000)
 
     def checkState(self):
@@ -28,9 +28,10 @@ class Master():
         return state
     
     def process(self):
-        requestnum = 100
+        
+        requestnum = 10000 # the num of post we need 
+
         if self.checkState() == 'cold':
-                print(self.url[:-5])
                 requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'aaa':'aaa'},timeout=1000)
                 time.sleep(10)
         while int(requests.get(f"{self.url}/progress").content.decode("utf-8"))<requestnum:
@@ -38,7 +39,9 @@ class Master():
             wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
             userlinks = [wrapper.find_element(By.TAG_NAME,'a').get_attribute('href') for wrapper in wrappers]
             for userlink in userlinks:
-                time.sleep(2)
+
+                time.sleep(1)
+
                 if int(requests.get(f"{self.url}/progress").content.decode("utf-8"))>= requestnum:
                     break
                 if self.checkState() == 'full':
@@ -64,12 +67,14 @@ def init():
 
 if __name__ == '__main__':
     # init()
-    url = os.getenv("URL")
-    print(url)
-    if url is None:
-        # url = 'http://192.168.1.67:8080'
-        url = 'http://34.173.73.125:8080'
-        # url = "https://scraper-394300.uc.r.appspot.com" #local mode
+
+    url = 'http://192.168.1.67:8080'
+    # url = 'http://34.134.101.179:8080'
+
     master = Master(url)
     time.sleep(5)
+    print(datetime.datetime.now(),'\n')
+    start = time.perf_counter()
     master.process()
+    end = time.perf_counter()
+    print('time is %4f hours'%((end - start)/3600)) 
