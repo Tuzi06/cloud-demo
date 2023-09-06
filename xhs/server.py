@@ -13,8 +13,8 @@ class Scraper():
         self.options.add_argument('disable-blink-features=AutomationControlled')
         self.options.add_argument('headless')
         self.options.add_argument("--disable-dev-shm-usage")
-        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(5)]
-        self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(2)]
+        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(20)]
+        self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(15)]
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
         self.stop = False
@@ -87,7 +87,6 @@ def start():
         processes.append(Process(target=scraper.userPageScraper,args=[browser,userlinkPool,userInfoPipline,userLog]))
     for browser in scraper.postBrowsers:
          processes.append(Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]))
-    processes.append(Process(target=scraper.maintainPipline,args=[scraper.state,scraper.stateChild,userlinkPool]))
     for process in processes:
         process.start()
     return 'finish starting'
