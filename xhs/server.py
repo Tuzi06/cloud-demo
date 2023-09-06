@@ -13,8 +13,8 @@ class Scraper():
         self.options.add_argument('disable-blink-features=AutomationControlled')
         self.options.add_argument('headless')
         self.options.add_argument("--disable-dev-shm-usage")
-        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"localhost:4444/wd/hub",options=self.options) for _ in range(5)]
-        self.postBrowsers = [webdriver.Remote(command_executor=f"localhost:4444/wd/hub",options=self.options) for _ in range(3)]
+        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(15)]
+        self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(15)]
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
         self.stateParent,self.stateChild = Pipe()
@@ -24,14 +24,14 @@ class Scraper():
     def userPageScraper(self,browser,userlinkPool,userInfoPipline,userLog):
         while not self.stop:
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
-                time.sleep(3)
+                time.sleep(2)
                 continue
             userlink = userlinkPool.get()
             try:
                 browser.get(userlink)
-                time.sleep(1)
-                if ' https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(browser.current_url):
-                    browser.get(userlink)
+                # time.sleep(1)
+                # if ' https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(browser.current_url):
+                #     browser.get(userlink)
                 wait_for_page(browser,'note-item')
                 soup = bs(browser.page_source,'html.parser')
                 userInfo = getUser(soup)
@@ -41,20 +41,16 @@ class Scraper():
                 continue
             if userlink not in userLog:
                 userLog.append(userlink)
-                try: 
-                    if int(userInfo['follow'])>=10000:
-                        userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
-                        continue
-                except:
-                    if 'W' in userInfo['follow'] or '万' in userInfo['follow']:
-                        userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
-                        continue
-                userInfoPipline.put({'userInfo':userInfo,'links':[]})
+            
+                if 'W' in userInfo['follow'] or '万' in userInfo['follow']:
+                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
+                else:
+                    userInfoPipline.put({'userInfo':userInfo,'links':[]})
 
     def postPageScrapers(self,browser,userInfoPipline,posts):
         while not self.stop:
             if userInfoPipline.empty():
-                time.sleep(3)
+                time.sleep(2)
                 continue
             userInfo,links = userInfoPipline.get().values()
             idx = 0
@@ -62,10 +58,10 @@ class Scraper():
                 if self.stop:
                     break
                 try:
-                    browser.get('https://www.xiaohongshu.com'+link)
-
-                    if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(browser.current_url):
-                        browser.get('https://www.xiaohongshu.com'+link)
+                    browser.get('https://www.xiaohongshu.com'+link) 
+                    # time.sleep(1)
+                    # if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(browser.current_url):
+                    #     browser.get('https://www.xiaohongshu.com'+link)
                     wait_for_page(browser,'comment-item')
                     soup = bs(browser.page_source,'html.parser')
                     idx,post= grabing(soup,userInfo,idx)
@@ -73,23 +69,24 @@ class Scraper():
                     # print(traceback.print_exc())
                     print('fail on post')
                     continue
-                post['url'] = link
+                post['url'] = 'https://www.xiaohongshu.com'+link
                 posts.append(post)
 
-    def maintainPipline(self,stateChild,userlinkPool):
+    def maintainPipline(self,state,stateChild,userlinkPool):
+        self.state = state
         self.stateChild = stateChild
         while not self.stop:
-            time.sleep(2)
-            if userlinkPool.qsize()>10 and self.state != 'full':
+            time.sleep(1)
+            if userlinkPool.qsize()>30 and self.state != 'full':
                 self.stateChild.send('full')
-            elif self.state != 'ready':
+            elif userlinkPool.qsize()<=30 and self.state != 'ready':
                 self.stateChild.send('ready')
 
 app = Flask(__name__)
 
 @app.route('/start')
 def start():
-    global userlinkPool,posts,userLog,scraper,processes
+    global userInfoPipline,userlinkPool,posts,userLog,scraper,processes
     userInfoPipline =Queue()
     userlinkPool = Queue()
     posts = Manager().list()
@@ -101,7 +98,7 @@ def start():
         processes.append(Process(target=scraper.userPageScraper,args=[browser,userlinkPool,userInfoPipline,userLog]))
     for browser in scraper.postBrowsers:
          processes.append(Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]))
-    processes.append(Process(target=scraper.maintainPipline,args=[scraper.stateChild,userlinkPool]))
+    processes.append(Process(target=scraper.maintainPipline,args=[scraper.state,scraper.stateChild,userlinkPool]))
     for process in processes:
         process.start()
     return 'finish starting'
@@ -111,7 +108,6 @@ def fetchState():
     try:
         if scraper.stateParent.poll(timeout=3):
             scraper.state = scraper.stateParent.recv()
-            print(scraper.stateParent.recv())
         return scraper.state
     except:
         return 'cold'
@@ -135,9 +131,13 @@ def download():
 def checkProgress():
     return str(len(list(posts)))
 
+@app.route('/poolState')
+def poolState():
+    return str(f"userInfoQueue:{userlinkPool.qsize()}, postQueue:{userInfoPipline.qsize()}")
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
 
-    # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=50 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=86400 selenium/standalone-chrome
+    # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=50 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=864000 selenium/standalone-chrome
     # docker kill $(docker ps -q)
     # docker buildx build --platform linux/amd64 -t tuzi06/xhs-scraper:latest --push .

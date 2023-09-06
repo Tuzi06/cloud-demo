@@ -52,7 +52,7 @@ def getUser(soup):
 def findNoteContent(soup,content):
     content['title'] = soup.find('div',{'id':'detail-title'}).text or ''
     content['text'] = soup.find('div',{'id':'detail-desc'}).text 
-    content['tag'] = [tag.text for tag in soup.findAll('span',class_='tag')]
+    content['tag'] = [tag.text[1:] for tag in soup.findAll('a',class_='tag-search tag')]
 
 def findComment(soup,content):
     if soup.find('span','chat-wrapper').text == '0':
