@@ -13,8 +13,8 @@ class Scraper():
         self.options.add_argument('disable-blink-features=AutomationControlled')
         self.options.add_argument('headless')
         self.options.add_argument("--disable-dev-shm-usage")
-        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(15)]
-        self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(15)]
+        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(5)]
+        self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(2)]
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
         self.stateParent,self.stateChild = Pipe()
@@ -77,9 +77,10 @@ class Scraper():
         self.stateChild = stateChild
         while not self.stop:
             time.sleep(1)
-            if userlinkPool.qsize()>30 and self.state != 'full':
+            print(state)
+            if userlinkPool.qsize()>30 and state != 'full':
                 self.stateChild.send('full')
-            elif userlinkPool.qsize()<=30 and self.state != 'ready':
+            elif userlinkPool.qsize()<=30 and state != 'ready':
                 self.stateChild.send('ready')
 
 app = Flask(__name__)
@@ -123,6 +124,7 @@ def stop():
     for browser in scraper.postBrowsers+scraper.userInfoBrowsers:
         browser.quit()
     return list(posts)
+
 @app.route('/download')
 def download():
     return list(posts)
@@ -138,6 +140,6 @@ def poolState():
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
 
-    # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=50 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=864000 selenium/standalone-chrome
+    # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=10 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true selenium/standalone-chrome
     # docker kill $(docker ps -q)
     # docker buildx build --platform linux/amd64 -t tuzi06/xhs-scraper:latest --push .
