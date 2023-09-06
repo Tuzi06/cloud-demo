@@ -64,8 +64,8 @@ def init():
 if __name__ == '__main__':
     # init()
 
-    # url = 'http://192.168.1.67:8080'
-    url = 'http://34.132.231.226:8080'
+    url = 'http://192.168.1.67:8080'
+    # url = 'http://34.132.231.226:8080'
 
     master = Master(url)
     time.sleep(5)

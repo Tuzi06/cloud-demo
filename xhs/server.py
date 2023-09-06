@@ -17,7 +17,6 @@ class Scraper():
         self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(2)]
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
-        self.stateParent,self.stateChild = Pipe()
         self.stop = False
     
 
@@ -72,17 +71,6 @@ class Scraper():
                 post['url'] = 'https://www.xiaohongshu.com'+link
                 posts.append(post)
 
-    def maintainPipline(self,state,stateChild,userlinkPool):
-        self.state = state
-        self.stateChild = stateChild
-        while not self.stop:
-            time.sleep(1)
-            print(state)
-            if userlinkPool.qsize()>30 and state != 'full':
-                self.stateChild.send('full')
-            elif userlinkPool.qsize()<=30 and state != 'ready':
-                self.stateChild.send('ready')
-
 app = Flask(__name__)
 
 @app.route('/start')
@@ -107,9 +95,10 @@ def start():
 @app.route('/state')
 def fetchState():
     try:
-        if scraper.stateParent.poll(timeout=3):
-            scraper.state = scraper.stateParent.recv()
-        return scraper.state
+        if userlinkPool.qsize()>30:
+            return 'full'
+        else:
+            return 'ready'
     except:
         return 'cold'
 
