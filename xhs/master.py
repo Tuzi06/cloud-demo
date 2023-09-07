@@ -17,7 +17,7 @@ class Master():
 
     def sendJobs(self,userlink):
         # print(userlink)
-        requests.get(f"{self.url}/processJob",json={'userlink':userlink,'aaa':'aaa'},timeout = 1)
+        requests.get(f"{self.url}/processJob",json={'userlink':userlink,'aaa':'aaa'},timeout = 10)
 
     def checkState(self):
         try:
@@ -32,7 +32,7 @@ class Master():
         requestnum = 10000 # the num of post we need 
 
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'aaa':'aaa'},timeout=1000)
+                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':5,'postScraper':40},timeout=1000)
                 time.sleep(5)
         while int(requests.get(f"{self.url}/progress").content.decode("utf-8"))<requestnum:
             wait_for_page(self.browser,'author-wrapper')
@@ -42,11 +42,16 @@ class Master():
                 time.sleep(2)
                 continue
             for userlink in userlinks:
-                self.sendJobs(userlink)
+                time.sleep(0)
+                try:
+                    self.sendJobs(userlink)
+                except:
+                    continue
                 
             self.browser.execute_script("arguments[0].scrollIntoView();",wrappers[-1])
             print(int(requests.get(f"{self.url}/progress").content.decode("utf-8"))/requestnum)
-        posts = requests.get(f"{self.url}/stop").json()
+        posts = requests.get(f"{self.url}/download").json()
+        print(type(posts))
         
         open('resust.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
 
@@ -64,8 +69,8 @@ def init():
 if __name__ == '__main__':
     # init()
 
-    url = 'http://192.168.1.67:8080'
-    # url = 'http://34.132.231.226:8080'
+    # url = 'http://192.168.1.67:8080'
+    url = 'http://35.208.201.235:8080'
 
     master = Master(url)
     time.sleep(5)
