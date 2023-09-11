@@ -11,13 +11,13 @@ url = 'https://www.instagram.com/'
 def init():
     soption = webdriver.ChromeOptions()
     soption.add_argument('disable-blink-features=AutomationControlled')
-    service = Service(executable_path='lowlevel/chromedriver-mac-arm64/chromedriver')
+    service = Service(executable_path= './lowlevel/chromedriver-linux64/chromedriver')
     driver = webdriver.Chrome(options = soption,service=service)
     driver.get(url)
     input('pause for login ... press enter when finished')
     cookies = driver.get_cookies()
     driver.quit()
-    pickle.dump(cookies, open('lowlevel/ins_cookies_p.pkl','wb'))
+    pickle.dump(cookies, open('lowlevel/ins_cookies_linux.pkl','wb'))
     
 def prepare_driver(cookies,workers,headless = True,proxy = ''):
     drivers = []
@@ -26,12 +26,13 @@ def prepare_driver(cookies,workers,headless = True,proxy = ''):
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--incognito')
     options.add_argument("--disable-extensions")
+    # options.add_argument("--disk-cache-size=0")
 
     if proxy != '':
         print(proxy)
         options.add_argument('--proxy-server={}'.format(proxy))
     if sys.platform == 'linux':
-        service = Service(executable_path= '/usr/bin/chromedriver.exe')
+        service = Service(executable_path= './lowlevel/chromedriver-linux64/chromedriver')
     elif sys.platform == 'darwin':
         service = Service(executable_path='lowlevel/chromedriver-mac-arm64/chromedriver')
     if headless:

@@ -13,7 +13,7 @@ from lowlevel.xhs2 import prepare_driver,wait_for_page
 class Master():
     def __init__(self,url):
         self.url = url
-        self.browser = prepare_driver(pickle.load(open('lowlevel/xhs_cookies.pkl','rb')),1)[0]
+        self.browser = prepare_driver(pickle.load(open('lowlevel/cookies_linux.pkl','rb')),1,False)[0]
 
     def sendJobs(self,userlink):
         # print(userlink)
@@ -29,9 +29,8 @@ class Master():
     def printProgress(self,requestnum):
         progress= int(requests.get(f"{self.url}/progress").content.decode("utf-8"))
         percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
-        filledLength = int(100 * progress // requestnum)
-        bar = '█' * filledLength + '-' * (requestnum - filledLength)
-        print(f'\r progress |{bar}| {percent}% Complete', end = '\r')
+    
+        print(f'\r progress: {percent}% Complete', end = '\r')
 
         posts = requests.get(f"{self.url}/download").json()
     def process(self):
@@ -62,20 +61,19 @@ class Master():
 def init():
     soption = ChromeOptions()
     soption.add_argument('disable-blink-features=AutomationControlled')
-    service = Service(executable_path= 'lowlevel/chromedriver-mac-arm64/chromedriver')
+    service = Service(executable_path= 'lowlevel/chromedriver-linux64/chromedriver')
     driver = Chrome(options = soption,service=service)
     driver.get('https://www.xiaohongshu.com/explore')
     input('pause for login ... press enter when finished')
     cookies = driver.get_cookies()
     driver.quit()
-    pickle.dump(cookies,open('lowlevel/xhs_cookies.pkl','wb'))
+    pickle.dump(cookies,open('lowlevel/cookies_linux.pkl','wb'))
 
 if __name__ == '__main__':
     # init()
 
     # url = 'http://192.168.1.67:8080'
-    url = 'http://35.208.201.235:8080'
-
+    url = 'http://35.209.164.203:8080'
     master = Master(url)
     time.sleep(5)
     print(datetime.datetime.now(),'\n')
