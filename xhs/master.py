@@ -36,7 +36,7 @@ class Master():
         posts = requests.get(f"{self.url}/download").json()
     def process(self):
         
-        requestnum = 10000 # the num of post we need 
+        requestnum = 50000 # the num of post we need 
 
         if self.checkState() == 'cold':
                 requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':10,'postScraper':20},timeout=1000)
