@@ -13,7 +13,7 @@ def prepare_driver(cookies,workers,headless = True):
     options.add_argument('disable-blink-features=AutomationControlled')
     
     if sys.platform == 'linux':
-        service = Service(executable_path= '/usr/bin/chromedriver.exe')
+        service = Service(executable_path= 'lowlevel/chromedriver-linux64/chromedriver')
     elif sys.platform == 'darwin':
         service = Service(executable_path='lowlevel/chromedriver-mac-arm64/chromedriver')
     if headless:

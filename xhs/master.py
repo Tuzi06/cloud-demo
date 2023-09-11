@@ -38,7 +38,7 @@ class Master():
         requestnum = 50000 # the num of post we need 
 
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':10,'postScraper':20},timeout=1000)
+                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':12,'postScraper':15},timeout=1000)
                 time.sleep(5)
         while int(requests.get(f"{self.url}/progress").content.decode("utf-8"))<requestnum:
             wait_for_page(self.browser,'author-wrapper')
@@ -46,7 +46,7 @@ class Master():
             userlinks = [wrapper.find_element(By.TAG_NAME,'a').get_attribute('href') for wrapper in wrappers]
             self.printProgress(requestnum)
             if self.checkState() == 'full':
-                time.sleep(2)
+                time.sleep(1)
                 continue
             for userlink in userlinks:
                 try:
@@ -74,6 +74,7 @@ if __name__ == '__main__':
 
     # url = 'http://192.168.1.67:8080'
     url = 'http://35.209.164.203:8080'
+    # url = 'http://127.0.0.1:8080'
     master = Master(url)
     time.sleep(5)
     print(datetime.datetime.now(),'\n')
@@ -81,3 +82,5 @@ if __name__ == '__main__':
     master.process()
     end = time.perf_counter()
     print('\n Time is %4f hours'%((end - start)/3600)) 
+
+    # 2023-09-11 02:21:48.793720
