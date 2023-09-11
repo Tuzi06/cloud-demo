@@ -51,6 +51,7 @@ class Scraper():
                 try:
                     browser.get('https://www.xiaohongshu.com'+link) 
                     wait_for_page(browser,'comment-item')
+                    wait_for_page(browser,'tag-search tag')
                     soup = bs(browser.page_source,'html.parser')
                     idx,post= grabing(soup,userInfo,idx)
                 except:
@@ -110,8 +111,8 @@ if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
 
     # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=40 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=86400 selenium/standalone-chrome
-    # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=5 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=86400 seleniarm/standalone-chromium
+    # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=40 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=864000 seleniarm/standalone-chromium
 
     # docker kill $(docker ps -q)
     # docker buildx build --platform linux/amd64 -t tuzi06/xhs-scraper:latest --push .
-    #docker buildx build  -t tuzi06/scraper-arm:latest --push .
+    # docker buildx build  -t tuzi06/scraper-arm:latest --push .
