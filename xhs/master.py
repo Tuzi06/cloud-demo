@@ -26,32 +26,36 @@ class Master():
         except Exception:
             state = 'cold'
         return state
-    
+    def printProgress(self,requestnum):
+        progress= int(requests.get(f"{self.url}/progress").content.decode("utf-8"))
+        percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
+        filledLength = int(100 * progress // requestnum)
+        bar = '█' * filledLength + '-' * (requestnum - filledLength)
+        print(f'\r progress |{bar}| {percent}% Complete', end = '\r')
+
+        posts = requests.get(f"{self.url}/download").json()
     def process(self):
         
         requestnum = 10000 # the num of post we need 
 
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':5,'postScraper':40},timeout=1000)
+                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':10,'postScraper':20},timeout=1000)
                 time.sleep(5)
         while int(requests.get(f"{self.url}/progress").content.decode("utf-8"))<requestnum:
             wait_for_page(self.browser,'author-wrapper')
             wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
             userlinks = [wrapper.find_element(By.TAG_NAME,'a').get_attribute('href') for wrapper in wrappers]
+            self.printProgress(requestnum)
             if self.checkState() == 'full':
                 time.sleep(2)
                 continue
             for userlink in userlinks:
-                time.sleep(0)
                 try:
                     self.sendJobs(userlink)
                 except:
                     continue
-                
             self.browser.execute_script("arguments[0].scrollIntoView();",wrappers[-1])
-            print(int(requests.get(f"{self.url}/progress").content.decode("utf-8"))/requestnum)
         posts = requests.get(f"{self.url}/download").json()
-        print(type(posts))
         
         open('resust.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
 
@@ -78,4 +82,4 @@ if __name__ == '__main__':
     start = time.perf_counter()
     master.process()
     end = time.perf_counter()
-    print('time is %4f hours'%((end - start)/3600)) 
+    print('\n Time is %4f hours'%((end - start)/3600)) 

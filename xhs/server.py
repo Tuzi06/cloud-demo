@@ -1,7 +1,7 @@
 import time
 import traceback
 from flask import Flask,request
-from multiprocessing import Process,Pipe,Manager,Queue
+from multiprocessing import Process,Manager,Queue
 from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 from lowlevel.xhs2 import prepare_driver,wait_for_page,getUser,grabing
@@ -17,56 +17,44 @@ class Scraper():
         self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(postScrapers)]
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
-        self.stop = False
-    
 
     def userPageScraper(self,browser,userlinkPool,userInfoPipline,userLog):
-        while not self.stop:
+        while True:
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
                 time.sleep(2)
                 continue
             userlink = userlinkPool.get()
             try:
                 browser.get(userlink)
-                # time.sleep(1)
-                # if ' https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(browser.current_url):
-                #     browser.get(userlink)
                 wait_for_page(browser,'note-item')
                 soup = bs(browser.page_source,'html.parser')
                 userInfo = getUser(soup)
             except:
-                # print(traceback.print_exc())
-                print('fail on users')
+                # print('fail on users')
                 continue
             if userlink not in userLog:
                 userLog.append(userlink)
             
-                # if 'W' in userInfo['follow'] or '万' in userInfo['follow']:
-                userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
-                # else:
-                # userInfoPipline.put({'userInfo':userInfo,'links':[]})
+                if 'W' in userInfo['follow'] or '万' in userInfo['follow']:
+                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
+                else:
+                    userInfoPipline.put({'userInfo':userInfo,'links':[]})
 
     def postPageScrapers(self,browser,userInfoPipline,posts):
-        while not self.stop:
+        while True:
             if userInfoPipline.empty():
                 time.sleep(2)
                 continue
             userInfo,links = userInfoPipline.get().values()
             idx = 0
             for link in links:
-                if self.stop:
-                    break
                 try:
                     browser.get('https://www.xiaohongshu.com'+link) 
-                    # time.sleep(1)
-                    # if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in str(browser.current_url):
-                    #     browser.get('https://www.xiaohongshu.com'+link)
                     wait_for_page(browser,'comment-item')
                     soup = bs(browser.page_source,'html.parser')
                     idx,post= grabing(soup,userInfo,idx)
                 except:
-                    # print(traceback.print_exc())
-                    print('fail on post')
+                    # print('fail on post')
                     continue
                 post['url'] = 'https://www.xiaohongshu.com'+link
                 posts.append(post)
@@ -94,7 +82,7 @@ def start():
 @app.route('/state')
 def fetchState():
     try:
-        if userlinkPool.qsize()>15:
+        if userlinkPool.qsize()>5:
             return 'full'
         else:
             return 'ready'
@@ -105,13 +93,6 @@ def fetchState():
 def processJob():
     userlinkPool.put(request.get_json()['userlink'])
     return 'process is ongoing'
-
-@app.route('/stop')
-def stop():
-    scraper.stop = True
-    for browser in scraper.postBrowsers+scraper.userInfoBrowsers:
-        browser.quit()
-    return list(posts)
 
 @app.route('/download')
 def download():
