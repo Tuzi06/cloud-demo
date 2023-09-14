@@ -13,7 +13,7 @@ from lowlevel.xhs2 import prepare_driver,wait_for_page
 class Master():
     def __init__(self,url):
         self.url = url
-        self.browser = prepare_driver(pickle.load(open('lowlevel/cookies_linux.pkl','rb')),1,False)[0]
+        self.browser = prepare_driver(pickle.load(open('lowlevel/xhs_cookies.pkl','rb')),1)[0]
 
     def sendJobs(self,userlink):
         # print(userlink)
@@ -26,27 +26,30 @@ class Master():
         except Exception:
             state = 'cold'
         return state
-    def printProgress(self,requestnum):
-        progress= int(requests.get(f"{self.url}/progress").content.decode("utf-8"))
-        percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
-    
-        print(f'\r progress: {percent}% Complete', end = '\r')
 
-        posts = requests.get(f"{self.url}/download").json()
+
     def process(self):
-        
-        requestnum = 50000 # the num of post we need 
+        lastScrape = json.load(open('result.json','r'))
+        # lastScrape = []
+        requestnum = 50000 - len(lastScrape) # the num of post we need 
+        print(f"{requestnum} post need be scrapped")
+
+        userlog = json.load(open('userlog.json','r'))
+        # userlog = []
 
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':12,'postScraper':15},timeout=1000)
-                time.sleep(5)
-        while int(requests.get(f"{self.url}/progress").content.decode("utf-8"))<requestnum:
+                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':20,'postScraper':15,'userlog':userlog},timeout=1000)
+        while True:
             wait_for_page(self.browser,'author-wrapper')
             wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
             userlinks = [wrapper.find_element(By.TAG_NAME,'a').get_attribute('href') for wrapper in wrappers]
-            self.printProgress(requestnum)
+
+            progress= int(requests.get(f"{self.url}/progress").content.decode("utf-8"))
+            percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
+            print(f'\r progress: {percent}% Complete', end = '\r')
+
             if self.checkState() == 'full':
-                time.sleep(1)
+                time.sleep(2)
                 continue
             for userlink in userlinks:
                 try:
@@ -54,25 +57,29 @@ class Master():
                 except:
                     continue
             self.browser.execute_script("arguments[0].scrollIntoView();",wrappers[-1])
-        posts = requests.get(f"{self.url}/download").json()
-        
-        open('resust.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
+
+            if progress>= requestnum:
+                break
+            
+            
+        posts = requests.get(f"{self.url}/download",timeout=100000).json() + lastScrape
+        open('resust1.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
 
 def init():
     soption = ChromeOptions()
     soption.add_argument('disable-blink-features=AutomationControlled')
-    service = Service(executable_path= 'lowlevel/chromedriver-linux64/chromedriver')
+    service = Service(executable_path= 'lowlevel/chromedriver-mac-arm64/chromedriver')
     driver = Chrome(options = soption,service=service)
     driver.get('https://www.xiaohongshu.com/explore')
     input('pause for login ... press enter when finished')
     cookies = driver.get_cookies()
     driver.quit()
-    pickle.dump(cookies,open('lowlevel/cookies_linux.pkl','wb'))
+    pickle.dump(cookies,open('lowlevel/xhs_cookies.pkl','wb'))
 
 if __name__ == '__main__':
     # init()
 
-    # url = 'http://192.168.1.67:8080'
+    # url = 'http://192.168.1.70:8080'
     url = 'http://35.209.164.203:8080'
     # url = 'http://127.0.0.1:8080'
     master = Master(url)

@@ -18,7 +18,7 @@ class Scraper():
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
 
-    def userPageScraper(self,browser,userlinkPool,userInfoPipline,userLog):
+    def userPageScraper(self,browser,userlinkPool,userInfoPipline,userLog): 
         while True:
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
                 time.sleep(2)
@@ -32,8 +32,8 @@ class Scraper():
             except:
                 # print('fail on users')
                 continue
-            if userlink not in userLog:
-                userLog.append(userlink)
+            if userInfo['user-id'] not in userLog:
+                userLog.append(userInfo['user-id'])
             
                 if 'W' in userInfo['follow'] or '万' in userInfo['follow']:
                     userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
@@ -68,8 +68,8 @@ def start():
     userInfoPipline =Queue()
     userlinkPool = Queue()
     posts = Manager().list()
-    userLog = Manager().list()
-    url,userScrapers,postScrapers = request.get_json().values()
+    url,userScrapers,postScrapers,userlog = request.get_json().values()
+    userLog = Manager().list(userlog)
     scraper = Scraper(url,userScrapers,postScrapers)
     processes = []
     for browser in scraper.userInfoBrowsers:
@@ -83,7 +83,7 @@ def start():
 @app.route('/state')
 def fetchState():
     try:
-        if userlinkPool.qsize()>5:
+        if userlinkPool.qsize()>15:
             return 'full'
         else:
             return 'ready'
@@ -101,7 +101,7 @@ def download():
 
 @app.route('/progress')
 def checkProgress():
-    return str(len(list(posts)))
+    return str(len(posts))
 
 @app.route('/poolState')
 def poolState():
