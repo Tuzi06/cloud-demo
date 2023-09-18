@@ -7,8 +7,8 @@ from bs4 import BeautifulSoup as bs
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
-service = Service(executable_path='lowlevel/chromedriver-mac-arm64/chromedriver')
-cookies = pickle.load(open('lowlevel/cookies_arm.pkl','rb'))
+service = Service(executable_path='lowlevel/chromedriver-linux64/chromedriver')
+cookies = pickle.load(open('lowlevel/cookies_linux.pkl','rb'))
 options = ChromeOptions()
 options.add_argument('disable-blink-features=AutomationControlled')
 options.add_argument('headless')
@@ -62,6 +62,6 @@ while total<10000:
         p1 = ("{0:." + str(3) + "f}").format(100 * (sucess/total))
         print(f"  {p1}% of user has follow greater than 10000, and {total} users checked",end="\r")
 browser1.quit()
-browser2.quit()
+
 print(f"\n total has {sucess} users has more than 10000 follows")
 open('users.json','w').write(json.dumps(users,ensure_ascii=False,indent=4))
