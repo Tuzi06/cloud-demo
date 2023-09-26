@@ -35,10 +35,12 @@ class Scraper():
             if userInfo['user-id'] not in userLog:
                 userLog.append(userInfo['user-id'])
             
-                if 'W' in userInfo['follow'] or '万' in userInfo['follow']:
-                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
-                else:
-                    userInfoPipline.put({'userInfo':userInfo,'links':[]})
+                if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
+                    if len(soup.findAll('a','cover ld mask'))>=10:
+                        userInfo.pop('like')
+                        userInfo.pop('follow')
+                        userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
+          
 
     def postPageScrapers(self,browser,userInfoPipline,posts):
         while True:
@@ -77,6 +79,7 @@ def start():
     for browser in scraper.postBrowsers:
          processes.append(Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]))
     for process in processes:
+        process.daemon=True
         process.start()
     return 'finish starting'
 

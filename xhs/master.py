@@ -3,6 +3,7 @@ import json
 import os
 import pickle
 import time
+from tkinter import FALSE
 import requests
 from selenium.webdriver import Chrome,ChromeOptions
 from selenium.webdriver.chrome.service import Service
@@ -13,7 +14,7 @@ from lowlevel.xhs2 import prepare_driver,wait_for_page
 class Master():
     def __init__(self,url):
         self.url = url
-        self.browser = prepare_driver(pickle.load(open('lowlevel/xhs_cookies.pkl','rb')),1)[0]
+        self.browser = prepare_driver(pickle.load(open('lowlevel/cookies_arm.pkl','rb')),1,False)[0]
 
     def sendJobs(self,userlink):
         # print(userlink)
@@ -29,16 +30,16 @@ class Master():
 
 
     def process(self):
-        lastScrape = json.load(open('result.json','r'))
-        # lastScrape = []
-        requestnum = 50000 - len(lastScrape) # the num of post we need 
+        # lastScrape = json.load(open('result.json','r'))
+        lastScrape = []
+        requestnum = 1000 - len(lastScrape) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
 
-        userlog = json.load(open('userlog.json','r'))
-        # userlog = []
+        # userlog = json.load(open('userlog.json','r'))
+        userlog = []
 
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':20,'postScraper':15,'userlog':userlog},timeout=1000)
+                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':10,'postScraper':5,'userlog':userlog},timeout=1000)
         while True:
             wait_for_page(self.browser,'author-wrapper')
             wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
@@ -80,8 +81,8 @@ if __name__ == '__main__':
     # init()
 
     # url = 'http://192.168.1.70:8080'
-    url = 'http://35.209.164.203:8080'
-    # url = 'http://127.0.0.1:8080'
+    # url = 'http://35.209.164.203:8080'
+    url = 'http://127.0.0.1:8080'
     master = Master(url)
     time.sleep(5)
     print(datetime.datetime.now(),'\n')

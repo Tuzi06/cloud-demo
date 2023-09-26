@@ -44,6 +44,7 @@ def getUser(soup):
     user['user-id'] = soup.find('span',class_='user-redId').text.split('：')[1]
     user['user-name'] = soup.find('div',class_ = 'user-name').text
     user['follow'] = soup.findAll('span',class_='count')[1].text
+    user['like'] = soup.findAll('span',class_='count')[2].text
     user['user-info'] = soup.find('div',class_='user-desc').text or ''
     user['user-sex'] = str(soup.find('div',class_='gender').find('use')['xlink:href'][1:]) or ''
     user['user-tag'] = [tag.text for tag in soup.findAll('div',class_='tag-item')]
