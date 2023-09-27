@@ -117,5 +117,6 @@ if __name__ == "__main__":
     # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=40 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=864000 seleniarm/standalone-chromium
 
     # docker kill $(docker ps -q)
-    # docker buildx build --platform linux/amd64 -t tuzi06/xhs-scraper:latest --push .
+    # docker buildx build --platform linux/amd64 -t tuzi06/scraper-x86:latest --push .
     # docker buildx build  -t tuzi06/scraper-arm:latest --push .
+    # docker rm $(docker ps --filter status=exited -q) 
