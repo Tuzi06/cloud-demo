@@ -24,6 +24,9 @@ class Scraper():
                 time.sleep(2)
                 continue
             userlink = userlinkPool.get()
+            if userlink in userLog:
+                continue
+            userLog.append(userlink)
             try:
                 browser.get(userlink)
                 wait_for_page(browser,'note-item')
@@ -32,14 +35,12 @@ class Scraper():
             except:
                 # print('fail on users')
                 continue
-            if userInfo['user-id'] not in userLog:
-                userLog.append(userInfo['user-id'])
-            
-                if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
-                    if len(soup.findAll('a','cover ld mask'))>=10:
-                        userInfo.pop('like')
-                        userInfo.pop('follow')
-                        userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
+         
+            if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
+                if len(soup.findAll('a','cover ld mask'))>=10:
+                    userInfo.pop('like')
+                    userInfo.pop('follow')
+                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
           
 
     def postPageScrapers(self,browser,userInfoPipline,posts):
