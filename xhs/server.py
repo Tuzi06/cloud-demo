@@ -32,15 +32,15 @@ class Scraper():
                 wait_for_page(browser,'note-item')
                 soup = bs(browser.page_source,'html.parser')
                 userInfo = getUser(soup)
+         
+                if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
+                    if len(soup.findAll('a','cover ld mask'))>=10:
+                        userInfo.pop('like')
+                        userInfo.pop('follow')
+                        userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
             except:
                 # print('fail on users')
                 continue
-         
-            if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
-                if len(soup.findAll('a','cover ld mask'))>=10:
-                    userInfo.pop('like')
-                    userInfo.pop('follow')
-                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in soup.findAll('a','cover ld mask')]})
           
 
     def postPageScrapers(self,browser,userInfoPipline,posts):
@@ -80,7 +80,6 @@ def start():
     for browser in scraper.postBrowsers:
          processes.append(Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]))
     for process in processes:
-        process.daemon=True
         process.start()
     return 'finish starting'
 

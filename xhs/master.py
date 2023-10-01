@@ -3,7 +3,6 @@ import json
 import os
 import pickle
 import time
-from tkinter import FALSE
 import requests
 from selenium.webdriver import Chrome,ChromeOptions
 from selenium.webdriver.chrome.service import Service
@@ -15,6 +14,7 @@ class Master():
     def __init__(self,url):
         self.url = url
         self.browser = prepare_driver(pickle.load(open('lowlevel/cookies_arm.pkl','rb')),1,False)[0]
+        self.browser.get('https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend')
 
     def sendJobs(self,userlink):
         # print(userlink)
@@ -30,16 +30,16 @@ class Master():
 
 
     def process(self):
-        # lastScrape = json.load(open('result.json','r'))
-        lastScrape = []
-        requestnum = 1000 - len(lastScrape) # the num of post we need 
+        lastScrape = json.load(open('postFiltered.json','r'))
+        # lastScrape = []
+        requestnum = 150000 - len(lastScrape) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
 
-        # userlog = json.load(open('userlog.json','r'))
-        userlog = []
+        userlog = json.load(open('userlog.json','r'))
+        # userlog = []
 
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':10,'postScraper':5,'userlog':userlog},timeout=1000)
+                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':10,'postScraper':30,'userlog':userlog},timeout=1000)
         while True:
             wait_for_page(self.browser,'author-wrapper')
             wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
@@ -59,12 +59,12 @@ class Master():
                     continue
             self.browser.execute_script("arguments[0].scrollIntoView();",wrappers[-1])
 
-            if progress>= requestnum:
+            if progress >= requestnum:
                 break
             
             
         posts = requests.get(f"{self.url}/download",timeout=100000).json() + lastScrape
-        open('resust1.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
+        open('xhs_posts.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
 
 def init():
     soption = ChromeOptions()
@@ -80,9 +80,9 @@ def init():
 if __name__ == '__main__':
     # init()
 
-    # url = 'http://192.168.1.70:8080'
-    # url = 'http://35.209.164.203:8080'
-    url = 'http://127.0.0.1:8080'
+    # url = 'http://192.168.1.91:8080'
+    url = 'http://35.208.236.78:8080'
+    # url = 'http://127.0.0.1:8080'
     master = Master(url)
     time.sleep(5)
     print(datetime.datetime.now(),'\n')
