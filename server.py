@@ -15,6 +15,7 @@ class Scraper():
         self.options.add_argument("--disable-dev-shm-usage")
         self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(userScrapers)]
         self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(postScrapers)]
+        
         # self.userInfoBrowsers=prepare_driver([],1,False)
         # self.postBrowsers=prepare_driver([],1,False)
 

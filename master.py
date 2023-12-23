@@ -1,6 +1,5 @@
 import datetime
 import json
-import os
 import pickle
 import time
 import requests
@@ -28,10 +27,10 @@ class Master():
             state = 'cold'
         return state
 
-
     def process(self):
         lastScrape = json.load(open('postFiltered.json','r'))
         # lastScrape = []
+
         requestnum = 150000 - len(lastScrape) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
 
@@ -66,7 +65,7 @@ class Master():
         posts = requests.get(f"{self.url}/download",timeout=100000).json() + lastScrape
         open('xhs_posts.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
 
-def init():
+def init(): # save your login information as cookie locally at lowerlevel folder
     soption = ChromeOptions()
     soption.add_argument('disable-blink-features=AutomationControlled')
     service = Service(executable_path= 'lowlevel/chromedriver-mac-arm64/chromedriver')
@@ -78,10 +77,9 @@ def init():
     pickle.dump(cookies,open('lowlevel/xhs_cookies.pkl','wb'))
 
 if __name__ == '__main__':
-    # init()
+    # init()  # uncomment this line when you run this script for the first time
 
-    # url = 'http://192.168.1.91:8080'
-    url = 'http://35.208.236.78:8080'
+    url = 'http://35.208.236.78:8080' # import your own ip address for your machine
     # url = 'http://127.0.0.1:8080'
     master = Master(url)
     time.sleep(5)
@@ -90,5 +88,3 @@ if __name__ == '__main__':
     master.process()
     end = time.perf_counter()
     print('\n Time is %4f hours'%((end - start)/3600)) 
-
-    # 2023-09-11 02:21:48.793720
