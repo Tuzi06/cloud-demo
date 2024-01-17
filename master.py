@@ -28,23 +28,19 @@ class Master():
         return state
 
     def process(self):
-        lastScrape = json.load(open('postFiltered.json','r'))
-        # lastScrape = []
-
-        requestnum = 150000 - len(lastScrape) # the num of post we need 
-        print(f"{requestnum} post need be scrapped")
-
-        userlog = json.load(open('userlog.json','r'))
-        # userlog = []
-
+        userlog = []
         if self.checkState() == 'cold':
-                requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':10,'postScraper':30,'userlog':userlog},timeout=1000)
+            requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':5,'postScraper':5,'userlog':userlog},timeout=1000)
+            requests.get('http://http://localhost:3001/start')    
+        num = requests.get('http://localhost:3001/count').content.decode("utf-8")
+        requestnum = 100 - int(num) # the num of post we need 
+        print(f"{requestnum} post need be scrapped")
         while True:
             wait_for_page(self.browser,'author-wrapper')
             wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
             userlinks = [wrapper.find_element(By.TAG_NAME,'a').get_attribute('href') for wrapper in wrappers]
 
-            progress= int(requests.get(f"{self.url}/progress").content.decode("utf-8"))
+            progress= int(requests.get(f"{self.url}/count").content.decode("utf-8"))
             percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
             print(f'\r progress: {percent}% Complete', end = '\r')
 
@@ -61,10 +57,6 @@ class Master():
             if progress >= requestnum:
                 break
             
-            
-        posts = requests.get(f"{self.url}/download",timeout=100000).json() + lastScrape
-        open('xhs_posts.json','w').write(json.dumps(posts,ensure_ascii=False,indent=4))
-
 def init(): # save your login information as cookie locally at lowerlevel folder
     soption = ChromeOptions()
     soption.add_argument('disable-blink-features=AutomationControlled')
@@ -77,10 +69,10 @@ def init(): # save your login information as cookie locally at lowerlevel folder
     pickle.dump(cookies,open('lowlevel/xhs_cookies.pkl','wb'))
 
 if __name__ == '__main__':
-    # init()  # uncomment this line when you run this script for the first time
+    # init()  # uncomment this line when you run this script for the first time, you need login to your account as usual and the script will store the cookie into a .pkl file
 
-    url = 'http://35.208.236.78:8080' # import your own ip address for your machine
-    # url = 'http://127.0.0.1:8080'
+    # url = 'http://35.208.236.78:8080' # import your own ip address for your machine
+    url = 'http://127.0.0.1:3000'
     master = Master(url)
     time.sleep(5)
     print(datetime.datetime.now(),'\n')

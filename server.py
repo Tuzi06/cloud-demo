@@ -1,10 +1,11 @@
 import time
-import traceback
 from flask import Flask,request
 from multiprocessing import Process,Manager,Queue
 from selenium import webdriver
 from bs4 import BeautifulSoup as bs
-from lowlevel.xhs2 import prepare_driver,wait_for_page,getUser,grabing
+import requests
+
+from lowlevel.xhs2 import wait_for_page,getUser,grabing,prepare_driver
 
 class Scraper():
     def __init__(self,url,userScrapers,postScrapers):
@@ -13,11 +14,11 @@ class Scraper():
         self.options.add_argument('disable-blink-features=AutomationControlled')
         self.options.add_argument('headless')
         self.options.add_argument("--disable-dev-shm-usage")
-        self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(userScrapers)]
-        self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(postScrapers)]
+        # self.userInfoBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(userScrapers)]
+        # self.postBrowsers = [webdriver.Remote(command_executor=f"{url}:4444/wd/hub",options=self.options) for _ in range(postScrapers)]
         
-        # self.userInfoBrowsers=prepare_driver([],1,False)
-        # self.postBrowsers=prepare_driver([],1,False)
+        self.userInfoBrowsers=prepare_driver([],1,False)
+        self.postBrowsers=prepare_driver([],1,False)
 
     def userPageScraper(self,browser,userlinkPool,userInfoPipline,userLog): 
         while True:
@@ -44,13 +45,14 @@ class Scraper():
                 continue
           
 
-    def postPageScrapers(self,browser,userInfoPipline,posts):
+    def postPageScrapers(self,browser,userInfoPipline):
         while True:
             if userInfoPipline.empty():
                 time.sleep(2)
                 continue
             userInfo,links = userInfoPipline.get().values()
             idx = 0
+            userInfo['posts'] = []
             for link in links:
                 try:
                     browser.get('https://www.xiaohongshu.com'+link) 
@@ -62,7 +64,10 @@ class Scraper():
                     # print('fail on post')
                     continue
                 post['url'] = 'https://www.xiaohongshu.com'+link
-                posts.append(post)
+                id = requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post})
+                userInfo['posts'].append(id)
+            requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'user','data':userInfo})
+            
 
 app = Flask(__name__)
 
@@ -112,7 +117,7 @@ def poolState():
     return str(f"userInfoQueue:{userlinkPool.qsize()}, postQueue:{userInfoPipline.qsize()}")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=3000)
 
     # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=40 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=86400 selenium/standalone-chrome
     # docker run -d -p 4444:4444 -e SE_NODE_MAX_SESSIONS=40 -e SE_NODE_OVERRIDE_MAX_SESSIONS=true -e SE_NODE_SESSION_TIMEOUT=864000 seleniarm/standalone-chromium
