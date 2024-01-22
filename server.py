@@ -5,7 +5,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 import requests
 
-from lowlevel.xhs2 import wait_for_page,getUser,grabing,prepare_driver
+from lowlevel.scraper import wait_for_page,getUser,grabing,prepare_driver
 
 class Scraper():
     def __init__(self,url,userScrapers,postScrapers):
@@ -64,9 +64,9 @@ class Scraper():
                     # print('fail on post')
                     continue
                 post['url'] = 'https://www.xiaohongshu.com'+link
-                id = requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post})
+                id = requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
                 userInfo['posts'].append(id)
-            requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'user','data':userInfo})
+            requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})
             
 
 app = Flask(__name__)
@@ -84,7 +84,7 @@ def start():
     for browser in scraper.userInfoBrowsers:
         processes.append(Process(target=scraper.userPageScraper,args=[browser,userlinkPool,userInfoPipline,userLog]))
     for browser in scraper.postBrowsers:
-         processes.append(Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline,posts]))
+         processes.append(Process(target=scraper.postPageScrapers,args=[browser,userInfoPipline]))
     for process in processes:
         process.start()
     return 'finish starting'

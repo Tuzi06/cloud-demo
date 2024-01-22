@@ -1,6 +1,8 @@
 # The main file that cloud server part code will interact with
 
 from flask import Flask,request
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 import pymongo
 
 app = Flask(__name__)
@@ -8,11 +10,15 @@ app = Flask(__name__)
 @app.route('/start')
 def init():
     global db,users,posts,pics
-    client = pymongo.MongoClient('mongodb+srv://tuzi06:tuzi1234@mydb.onb0ne9.mongodb.net/')
-    db = client.xhsData
+    uri = "mongodb+srv://tuzi06:00000000@mydb.uwwvnwd.mongodb.net/?retryWrites=true&w=majority"
+    client = MongoClient(uri,server_api=ServerApi('1'))
+    db = client.data
     users = db['users']
     posts = db['posts']
     pics = db['pics']
+
+    users.drop();posts.drop();pics.drop()
+    return 'started'
     
 
 @app.route('/count')
@@ -23,8 +29,8 @@ def count():
 def insert():
     data = request.get_json()
     try:
-        res = db[data['id']].insert_one(data['data'])
-        return res.inserted_id
+        _id = db[data['id']].insert_one(data['data'])
+        return str(_id.inserted_id)
     except pymongo.errors.OperationFailure:
         return 'something in insert is wrong'
 

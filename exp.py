@@ -1,4 +1,4 @@
-from lowlevel.xhs2 import prepare_driver
+from lowlevel.scraper import prepare_driver
 import time
 from selenium.webdriver.common.by import By
 import multiprocessing as mp

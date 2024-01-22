@@ -1,12 +1,11 @@
 import datetime
-import json
 import pickle
 import time
 import requests
 from selenium.webdriver import Chrome,ChromeOptions
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from lowlevel.xhs2 import prepare_driver,wait_for_page
+from lowlevel.scraper import prepare_driver,wait_for_page
 
 
 class Master():
@@ -31,16 +30,16 @@ class Master():
         userlog = []
         if self.checkState() == 'cold':
             requests.get(f"{self.url}/start",json= {'url':self.url[:-5],'userScraper':5,'postScraper':5,'userlog':userlog},timeout=1000)
-            requests.get('http://http://localhost:3001/start')    
-        num = requests.get('http://localhost:3001/count').content.decode("utf-8")
-        requestnum = 100 - int(num) # the num of post we need 
+            requests.get('http://127.0.0.1:3001/start')    
+        num = requests.get('http://127.0.0.1:3001/count').content.decode("utf-8")
+        requestnum = 30 - int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
         while True:
             wait_for_page(self.browser,'author-wrapper')
             wrappers = self.browser.find_elements(By.CLASS_NAME,'author-wrapper')
             userlinks = [wrapper.find_element(By.TAG_NAME,'a').get_attribute('href') for wrapper in wrappers]
 
-            progress= int(requests.get(f"{self.url}/count").content.decode("utf-8"))
+            progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
             percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
             print(f'\r progress: {percent}% Complete', end = '\r')
 
