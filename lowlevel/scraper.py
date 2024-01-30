@@ -1,43 +1,4 @@
-import copy,time,sys
-from selenium. webdriver.common.by import By
-from selenium.webdriver import Chrome,ChromeOptions
-from selenium.webdriver.chrome.service import Service
-from contextlib import contextmanager
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support.expected_conditions import presence_of_element_located,visibility_of_element_located
-
-url = 'https://www.xiaohongshu.com/explore'
-def prepare_driver(cookies,workers,headless = True):
-    drivers = []
-    options =ChromeOptions()
-    options.add_argument('disable-blink-features=AutomationControlled')
-    
-    if sys.platform == 'linux':
-        service = Service(executable_path= 'lowlevel/chromedriver-linux64/chromedriver')
-    elif sys.platform == 'darwin':
-        service = Service(executable_path='lowlevel/chromedriver-mac-arm64/chromedriver')
-    if headless:
-        options.add_argument('headless')
-    for _ in range(workers):
-        driver = Chrome(options = options,service=service)
-        driver.get('https://www.xiaohongshu.com/explore')
-        for cookie in cookies: 
-            if isinstance(cookie.get('expiry'),float):
-                cookie['expiry'] = int(cookie['expiry'])
-            driver.add_cookie(cookie)
-        driver.refresh()
-        drivers.append(driver)
-    return drivers
-
-@contextmanager
-def wait_for_page(driver,element,mode = 'show',timeout = 5):
-    try:
-        if mode == 'show':
-            WebDriverWait(driver, timeout).until(visibility_of_element_located((By.CLASS_NAME,element)))
-        else:
-            WebDriverWait(driver, timeout).until(presence_of_element_located((By.CLASS_NAME,element)))
-    except:
-        return
+import copy,json,requests,traceback
 
 def getUser(soup):
     user = dict() #用于存储信息的组建，使用dict以便后续写入json文档中
@@ -46,7 +7,8 @@ def getUser(soup):
     user['follow'] = soup.findAll('span',class_='count')[1].text
     user['like'] = soup.findAll('span',class_='count')[2].text
     user['user-info'] = soup.find('div',class_='user-desc').text or ''
-    user['user-sex'] = str(soup.find('div',class_='gender').find('use')['xlink:href'][1:]) or ''
+    try: user['user-sex'] = str(soup.find('div',class_='gender').find('use')['xlink:href'][1:])
+    except: user['user-sex'] = ''
     user['user-tag'] = [tag.text for tag in soup.findAll('div',class_='tag-item')]
     return user
 
@@ -56,37 +18,46 @@ def findNoteContent(soup,content):
     content['text'] = text.find('span').text
     content['tag'] = [tag.text[1:] for tag in soup.findAll('a',class_='tag tag-search')]
 
-def findComment(soup,content):
-    if soup.find('span','chat-wrapper').text == '0':
-        content['comments'] = []
-        return
-    container = soup.find('div',class_='list-container')
-    commentList = container.findAll('div',class_='comment-item',recursive=False) 
+def findComment(data,content):
     comments = []
-    for commentItem in commentList:
-        comment = dict()
-        comment['comment'] = {commentItem.find('div',class_='author').text : commentItem.find('div',class_='content').text}
-        if commentItem.find('div',class_='reply-container'):
-            comment['replys'] = [{replyItem.find('div',class_='author').text : replyItem.find('div',class_='content').text} for replyItem in commentItem.find('div',class_='reply-container').findAll('div',class_='comment-item')]
+    for d in data:
+        comment = {d['user_info']['nickname']:d['content']}
+        if d['sub_comment_count'] != '0':
+            r = dict()
+            replys = d['sub_comments']
+            for reply in replys:
+                r[reply['user_info']['nickname']] = reply['content']
+            comment['replys'] = r
         comments.append(comment)
-    content['comments'] = comments[:5]
+    
+    content['comments'] = comments 
     
 def findPicture(soup,content,idx):
+    urls = []
     try:
-        pics = soup.find('div',class_='swiper-wrapper').findAll('div')
+        data = json.loads(soup.findAll('script')[-1].text.split('=')[1].replace('undefined','null')) 
+        picUrls = data['note']['noteDetailMap'][data['note']['firstNoteId']]['note']['imageList']
+       
+        content['pictures'] = []
+        for url in picUrls:
+            content['pictures'].append(f"{content['user-id']}-{idx}")
+            urls.append(url['infoList'][1]['url'])
+            idx+=1
     except:
-        pics = [soup.find('xg-poster')]
-    photoUrls = []
-    for pic in pics:
-        photoUrls.append({f"{content['user-id']}-{idx}":pic['style'].split('"')[1].replace('&quot','')})
-        idx += 1
-    content['post']['pictures'] = photoUrls
-    return idx
-        
-def grabing(soup,user,idx):
+        urls.append(soup.find('div',class_='render-ssr-image player-container')['style'].split('(')[1][:-1])
+        content['pictures'] = [f"{content['user-id']}-{idx}"]
+    requests.get('http://127.0.0.1:3001/insert',json={'id':'pics','data':urls})
+
+
+def grabing(soup,headers,user,idx):
     post = copy.deepcopy(user)
     post['post'] = dict()
     findNoteContent(soup,post['post'])
-    findComment(soup,post['post'])
+    noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
+    url = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?note_id='+noteId+'&cursor=&top_comment_id=&image_formats=jpg,webp,avif'
+    response= requests.get(url,headers = headers)
+    commentData = response.json()['data']['comments']
+    
+    findComment(commentData,post['post'])
     idx = findPicture(soup,post,idx)
     return idx,post

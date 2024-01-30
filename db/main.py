@@ -6,6 +6,9 @@ from pymongo.server_api import ServerApi
 import pymongo
 
 app = Flask(__name__)
+# import logging
+# log = logging.getLogger('werkzeug')
+# log.setLevel(logging.ERROR)
 
 @app.route('/start')
 def init():
@@ -29,8 +32,13 @@ def count():
 def insert():
     data = request.get_json()
     try:
-        _id = db[data['id']].insert_one(data['data'])
-        return str(_id.inserted_id)
+        if data['id'] == 'pics':
+            for d in data['data']:
+                 db[data['id']].insert_one({'url':d})
+            return 'inserted'
+        else:
+            _id = db[data['id']].insert_one(data['data'])
+            return str(_id.inserted_id)
     except pymongo.errors.OperationFailure:
         return 'something in insert is wrong'
 
