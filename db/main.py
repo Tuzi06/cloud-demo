@@ -22,7 +22,13 @@ def init():
 
     users.drop();posts.drop();pics.drop()
     return 'started'
-    
+@app.route('/state')
+def state():
+    try:
+        str(len(list(posts.find())))
+        return 'started'
+    except:
+        return 'cold'
 
 @app.route('/count')
 def count():

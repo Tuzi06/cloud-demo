@@ -12,21 +12,20 @@ class Scraper():
         self.headers = {
             'authority': 'www.xiaohongshu.com',
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
-            'cache-control': 'max-age=0',
-            'cookie': 'abRequestId=17d4f392-daf3-504b-9705-ea26a4637bac; xsecappid=xhs-pc-web; a1=18d5cd4ab08x3trygpmg4i55k50ucknlg926zmnja40000152067; webId=0654c522ba49343049a7bf1834ce2ffe; gid=yYf2Sf4D48k2yYf2Sf40Dj6I8YCq9FvkU6k4JV0322T28K487STI1u888y2J8KW8fqj42y84; webBuild=4.1.6; websectiga=f3d8eaee8a8f63016320d94a1bd00562d516a5417bc43a032a80cbf70f07d5c0; sec_poison_id=4910a48c-54e0-486e-a460-768738daebd2; unread={%22ub%22:%22659e142b000000001e0062d2%22%2C%22ue%22:%2265a5fb0300000000110331b1%22%2C%22uc%22:26}; cache_feeds=[]',
-            'referer': 'https://www.google.com/',
+            'accept-language': 'en-US,en;q=0.9',
+            'cache-control': 'no-cache',
+            'cookie':'abRequestId=016ca8d1-1cfd-5356-88b2-28edd387b797; webBuild=4.1.6; xsecappid=xhs-pc-web; a1=18d5d13cd423kmw8i59bhij0ffu3pakoxjya5gy4a30000174296; webId=86fd14075a51c061734075dcf7aeb291; gid=yYf2fyqfqfCSyYf2fyqSfVkv4JqT6EY32jDxv403V8ii70q8qU0Tl2888yW4JjK8Yd2dJS8Y; websectiga=8886be45f388a1ee7bf611a69f3e174cae48f1ea02c0f8ec3256031b8be9c7ee; sec_poison_id=ce7c1788-4b60-4d31-9f18-703812393db6; cache_feeds=[]; web_session=0400697918e7f1e4f6f526ed8c374bc15f3461; unread={%22ub%22:%2265b8a203000000001100e6b4%22%2C%22ue%22:%2265b264aa000000002d00280c%22%2C%22uc%22:30}',
+            'pragma': 'no-cache',
             'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
             'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Linux"',
+            'sec-ch-ua-platform': '"macOS"',
             'sec-fetch-dest': 'document',
             'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'same-origin',
+            'sec-fetch-site': 'none',
             'sec-fetch-user': '?1',
             'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
         }
-
     def antiDetect(self,response,url):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url:
             time.sleep(5)
@@ -36,17 +35,18 @@ class Scraper():
     def homePageScraper(self,userlinkPool):
         start = time.perf_counter()
         print(datetime.datetime.now(),'\n')
-        requests.get('http://127.0.0.1:3001/start')    
+        if requests.get('http://127.0.0.1:3001/state').content.decode("utf-8") == 'cold':
+            requests.get('http://127.0.0.1:3001/start')    
         num = requests.get('http://127.0.0.1:3001/count').content.decode("utf-8")
+        print(num)
         requestnum = 10000 - int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
 
-        url = "https://www.xiaohongshu.com/explore"
+        url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
         while True:
             if userlinkPool.qsize()>5:
                 time.sleep(1)
                 continue
-            time.sleep(1)
             try:
                 response = requests.get(url ,headers = self.headers)
                 response = self.antiDetect(response,url)
@@ -57,15 +57,15 @@ class Scraper():
                 # time.sleep(5)
                 # return 
                 userlinks = ['https://www.xiaohongshu.com'+title['href']for title in html.findAll('a',class_='author')]
-                if len(userlinks) == 0:
-                    url = "https://www.xiaohongshu.com/explore" if url != "https://www.xiaohongshu.com/explore" else 'https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend'
-                    print(url)
-                    continue
                 for userlink in userlinks:
                     userlinkPool.put(userlink)
-                    progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
-                    percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
-                    print(f'\r progress: {percent}% Complete', end = '\r')
+                progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
+                percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
+                print(f'\r progress: {percent}% Complete', end = '\r')
+                if len(userlinks) == 0:
+                    url = "https://www.xiaohongshu.com/explore" if url != "https://www.xiaohongshu.com/explore" else 'https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend'
+                    # print(url)
+                    continue
                 if progress>= requestnum:
                     end = time.perf_counter()
                     print('\n Time is %4f hours'%((end - start)/3600)) 
