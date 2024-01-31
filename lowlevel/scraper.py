@@ -46,7 +46,7 @@ def findPicture(soup,content,idx):
     except:
         urls.append(soup.find('div',class_='render-ssr-image player-container')['style'].split('(')[1][:-1])
         content['pictures'] = [f"{content['user-id']}-{idx}"]
-    requests.get('http://127.0.0.1:3001/insert',json={'id':'pics','data':urls})
+    requests.post('http://127.0.0.1:3001/insert',json={'id':'pics','data':urls})
 
 
 def grabing(soup,headers,user,idx):

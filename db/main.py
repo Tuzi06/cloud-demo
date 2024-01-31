@@ -28,7 +28,7 @@ def init():
 def count():
     return str(len(list(posts.find())))
 
-@app.route('/insert')
+@app.route('/insert',methods = ['POST']) 
 def insert():
     data = request.get_json()
     try:

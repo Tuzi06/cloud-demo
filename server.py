@@ -12,19 +12,20 @@ class Scraper():
         self.headers = {
             'authority': 'www.xiaohongshu.com',
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'en-US,en;q=0.9',
+            'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
             'cache-control': 'max-age=0',
-            'cookie': 'abRequestId=0327e24d-58ec-5bec-a12a-388673237539; webBuild=4.1.6; a1=18d5c1af5d75ja3rdveqz7hi1g67old4bb5g9849v30000189236; webId=b293846ef2110fc76d0620697120b100; gid=yYf2SyD8yKDjyYf2Sy0i2DY4fW2V0qFfhdAu2jhWx3ykKkq8Wl1f4j888yYjJqK8qDfJ88fJ; cache_feeds=[]; xsecappid=xhs-pc-web; websectiga=7750c37de43b7be9de8ed9ff8ea0e576519e8cd2157322eb972ecb429a7735d4; web_session=030037a28a0a8d00f66c28c5c1224a5435187e; unread={%22ub%22:%22658b9e2a0000000015001605%22%2C%22ue%22:%22659cbc54000000001500225e%22%2C%22uc%22:29}; sec_poison_id=33c56913-1aad-402b-a4ff-2c5c15fa0719',
+            'cookie': 'abRequestId=17d4f392-daf3-504b-9705-ea26a4637bac; xsecappid=xhs-pc-web; a1=18d5cd4ab08x3trygpmg4i55k50ucknlg926zmnja40000152067; webId=0654c522ba49343049a7bf1834ce2ffe; gid=yYf2Sf4D48k2yYf2Sf40Dj6I8YCq9FvkU6k4JV0322T28K487STI1u888y2J8KW8fqj42y84; webBuild=4.1.6; websectiga=f3d8eaee8a8f63016320d94a1bd00562d516a5417bc43a032a80cbf70f07d5c0; sec_poison_id=4910a48c-54e0-486e-a460-768738daebd2; unread={%22ub%22:%22659e142b000000001e0062d2%22%2C%22ue%22:%2265a5fb0300000000110331b1%22%2C%22uc%22:26}; cache_feeds=[]',
+            'referer': 'https://www.google.com/',
             'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
             'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
+            'sec-ch-ua-platform': '"Linux"',
             'sec-fetch-dest': 'document',
             'sec-fetch-mode': 'navigate',
             'sec-fetch-site': 'same-origin',
             'sec-fetch-user': '?1',
             'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-            }
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+        }
 
     def antiDetect(self,response,url):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url:
@@ -39,13 +40,14 @@ class Scraper():
         num = requests.get('http://127.0.0.1:3001/count').content.decode("utf-8")
         requestnum = 10000 - int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
+
+        url = "https://www.xiaohongshu.com/explore"
         while True:
             if userlinkPool.qsize()>5:
                 time.sleep(1)
                 continue
             time.sleep(1)
             try:
-                url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
                 response = requests.get(url ,headers = self.headers)
                 response = self.antiDetect(response,url)
                 # self.headers = response.headers
@@ -55,11 +57,15 @@ class Scraper():
                 # time.sleep(5)
                 # return 
                 userlinks = ['https://www.xiaohongshu.com'+title['href']for title in html.findAll('a',class_='author')]
+                if len(userlinks) == 0:
+                    url = "https://www.xiaohongshu.com/explore" if url != "https://www.xiaohongshu.com/explore" else 'https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend'
+                    print(url)
+                    continue
                 for userlink in userlinks:
                     userlinkPool.put(userlink)
-                progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
-                percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
-                print(f'\r progress: {percent}% Complete', end = '\r')
+                    progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
+                    percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
+                    print(f'\r progress: {percent}% Complete', end = '\r')
                 if progress>= requestnum:
                     end = time.perf_counter()
                     print('\n Time is %4f hours'%((end - start)/3600)) 
@@ -119,9 +125,9 @@ class Scraper():
                     # print('fail on post')
                     continue
                 post['url'] = url
-                id = requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
+                id = requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
                 userInfo['posts'].append(id)
-            requests.get(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})
+            requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})
             
 
 app = Flask(__name__)
