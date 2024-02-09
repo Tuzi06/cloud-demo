@@ -18,9 +18,8 @@ def init():
     db = client.data
     users = db['users']
     posts = db['posts']
-    pics = db['pics']
 
-    users.drop();posts.drop();pics.drop()
+    users.drop();posts.drop()
     return 'started'
 @app.route('/state')
 def state():

@@ -12,6 +12,7 @@ class Scraper():
         self.userScraper = userScrapers
         self.postScraper = postScrapers
         self.headers = json.load(open('headers.json','r'))
+
     def antiDetect(self,response,url,headers):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url:
             time.sleep(5)
@@ -38,9 +39,9 @@ class Scraper():
 
         url =  "https://www.xiaohongshu.com/explore"
         headers = deepcopy(self.headers['htmlHeaders'])
-        update = 0 
-        suceed = 0
-        crash = 0
+        # update = 0 
+        # suceed = 0
+        # crash = 0
         while True:
             # print('success:',suceed,' url update:',update, ' crash: ',crash,end='\r')
             if userlinkPool.qsize()>20:
@@ -70,12 +71,12 @@ class Scraper():
 
                 if len(userlinks) == 0:
                     self.updateCookie(url)
-                    update += 1   
+                    # update += 1   
                     continue
-                suceed +=1 
+                # suceed +=1 
             except:
                 # traceback.print_exc()
-                crash+=1
+                # crash+=1
                 # return
                 continue
 
@@ -104,14 +105,17 @@ class Scraper():
                         userInfo.pop('follow')
                         # print(userInfo)
                         userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in linklist[:10]]})
-                return 
+                # return 
             except:
-                self.updateCookie(userlink)
+                try:
+                    self.updateCookie(userlink)
+                except:
+                    continue
                 # print(response.headers)
                 # traceback.print_exc()
                 # return 
                 # print('fail on users')
-                continue
+                
             
     def postPageScrapers(self,userInfoPipline):
         headers = deepcopy(self.headers['htmlHeaders'])
@@ -134,16 +138,18 @@ class Scraper():
                     idx,post= grabing(soup,self.headers,userInfo,idx)
                     # return 
                 except:
-                    self.updateCookie(url)
+                    try:
+                        self.updateCookie(url)
+                        continue
+                    except:
+                        continue
                     # traceback.print_exc()
                     # return
                     # print('fail on post')
-                    continue
                 post['url'] = url
                 id = requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
                 userInfo['posts'].append(id)
-            requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})
-            
+            requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})         
 
 app = Flask(__name__)
 
