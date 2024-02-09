@@ -25,7 +25,7 @@ class Scraper():
         newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
         newCookie = '; '.join(newCookie)
         # print(newCookie)
-        self.headers['cookie'] = newCookie
+        return newCookie
     
     def homePageScraper(self,userlinkPool):
         start = time.perf_counter()
@@ -39,6 +39,7 @@ class Scraper():
 
         url =  "https://www.xiaohongshu.com/explore"
         headers = deepcopy(self.headers['htmlHeaders'])
+        cookie = deepcopy(self.headers['cookie'])
         # update = 0 
         # suceed = 0
         # crash = 0
@@ -48,7 +49,7 @@ class Scraper():
                 time.sleep(1)
                 continue
             try:
-                headers['cookie'] = self.headers['cookie']
+                headers['cookie'] = cookie
                 response = requests.get(url ,headers = headers)
                 # response = self.antiDetect(response,url,headers)
 
@@ -70,7 +71,7 @@ class Scraper():
                     break 
 
                 if len(userlinks) == 0:
-                    self.updateCookie(url)
+                    cookie = self.updateCookie(url)
                     # update += 1   
                     continue
                 # suceed +=1 
@@ -82,8 +83,9 @@ class Scraper():
 
     def userPageScraper(self,userlinkPool,userInfoPipline,userLog): 
         headers = deepcopy(self.headers['htmlHeaders'])
-        headers['cookie'] = self.headers['cookie']
+        cookie = deepcopy(self.headers['cookie'])
         while True:
+            headers['cookie'] = self.headers['cookie']
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
                 time.sleep(1)
                 continue
@@ -108,7 +110,7 @@ class Scraper():
                 # return 
             except:
                 try:
-                    self.updateCookie(userlink)
+                    cookie = self.updateCookie(userlink)
                 except:
                     continue
                 # print(response.headers)
@@ -119,11 +121,12 @@ class Scraper():
             
     def postPageScrapers(self,userInfoPipline):
         headers = deepcopy(self.headers['htmlHeaders'])
+        cookie = deepcopy(self.headers['cookie'])
         while True:
             if userInfoPipline.empty():
                 time.sleep(1)
                 continue
-            headers['cookie'] = self.headers['cookie']
+            headers['cookie'] = cookie
             userInfo,links = userInfoPipline.get().values()
             idx = 0
             userInfo['posts'] = []
@@ -139,7 +142,7 @@ class Scraper():
                     # return 
                 except:
                     try:
-                        self.updateCookie(url)
+                        cookie = self.updateCookie(url)
                         continue
                     except:
                         continue
