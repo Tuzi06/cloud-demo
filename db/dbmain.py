@@ -38,13 +38,8 @@ def count():
 def insert():
     data = request.get_json()
     try:
-        if data['id'] == 'pics':
-            for d in data['data']:
-                 db[data['id']].insert_one({'url':d})
-            return 'inserted'
-        else:
-            _id = db[data['id']].insert_one(data['data'])
-            return str(_id.inserted_id)
+        _id = db[data['id']].insert_one(data['data'])
+        return str(_id.inserted_id)
     except pymongo.errors.OperationFailure:
         return 'something in insert is wrong'
 

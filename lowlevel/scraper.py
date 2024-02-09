@@ -6,14 +6,14 @@ def getUser(soup):
     user['user-name'] = soup.find('div',class_ = 'user-name').text
     user['follow'] = soup.findAll('span',class_='count')[1].text
     user['like'] = soup.findAll('span',class_='count')[2].text
-    user['user-info'] = soup.find('div',class_='user-desc').text or ''
+    user['user-info'] = soup.find('div',class_='user-desc').text if soup.find('div',class_='user-desc')!=None else ''
     try: user['user-sex'] = str(soup.find('div',class_='gender').find('use')['xlink:href'][1:])
     except: user['user-sex'] = ''
     user['user-tag'] = [tag.text for tag in soup.findAll('div',class_='tag-item')]
     return user
 
 def findNoteContent(soup,content):
-    content['title'] = soup.find('div',{'id':'detail-title'}).text or ''
+    content['title'] = soup.find('div',{'id':'detail-title'}).text if soup.find('div',{'id':'detail-title'})!= None else ''
     text = soup.find('div',{'id':'detail-desc'})
     content['text'] = text.find('span').text
     content['tag'] = [tag.text[1:] for tag in soup.findAll('a',class_='tag tag-search')]
@@ -38,25 +38,27 @@ def findPicture(soup,content,idx):
         data = json.loads(soup.findAll('script')[-1].text.split('=')[1].replace('undefined','null')) 
         picUrls = data['note']['noteDetailMap'][data['note']['firstNoteId']]['note']['imageList']
        
-        content['pictures'] = []
+        content['pictures'] = {}
         for url in picUrls:
-            content['pictures'].append(f"{content['user-id']}-{idx}")
-            urls.append(url['infoList'][1]['url'])
+            content['pictures'][f"{content['user-id']}-{idx}"] = url['infoList'][1]['url']
             idx+=1
     except:
-        urls.append(soup.find('div',class_='render-ssr-image player-container')['style'].split('(')[1][:-1])
-        content['pictures'] = [f"{content['user-id']}-{idx}"]
-    requests.post('http://127.0.0.1:3001/insert',json={'id':'pics','data':urls})
+        url = soup.find('div',class_='render-ssr-image player-container')['style'].split('(')[1][:-1]
+        content['pictures'] = {f"{content['user-id']}-{idx}":url}
     return idx
 
 
 def grabing(soup,headers,user,idx):
     post = copy.deepcopy(user)
+    post.pop('posts')
     post['post'] = dict()
     findNoteContent(soup,post['post'])
     noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
     url = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?note_id='+noteId+'&cursor=&top_comment_id=&image_formats=jpg,webp,avif'
-    response= requests.get(url,headers = headers)
+    header = copy.deepcopy(headers['htmlHeaders'])
+    header['Cookie'] = headers['cookie']
+    response= requests.get(url,headers = header)
+    # print(response.json())
     commentData = response.json()['data']['comments']
     
     findComment(commentData,post['post'])

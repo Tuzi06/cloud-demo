@@ -1,7 +1,9 @@
+from copy import deepcopy
+from http.cookiejar import Cookie
 from flask import Flask,request
 from multiprocessing import Process,Manager
 from bs4 import BeautifulSoup as bs
-import time,requests,traceback,datetime
+import time,requests,traceback,datetime,json
 
 from lowlevel.scraper import getUser,grabing
 class Scraper():
@@ -9,28 +11,20 @@ class Scraper():
         self.state = 'ready'
         self.userScraper = userScrapers
         self.postScraper = postScrapers
-        self.headers = {
-            'authority': 'www.xiaohongshu.com',
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'en-US,en;q=0.9',
-            'cache-control': 'no-cache',
-            'cookie': 'abRequestId=aeb5818f-5006-5c0a-9e5a-3daec7a07acc; webBuild=4.1.6; xsecappid=xhs-pc-web; a1=18d620cb00ex8f4nkqexvu690o85bwwb4ab8w7sqj30000511490; webId=be512f1fba036100505f38c23a3c51cc; websectiga=3633fe24d49c7dd0eb923edc8205740f10fdb18b25d424d2a2322c6196d2a4ad; sec_poison_id=16730391-47bd-404c-b606-bc1356050d69; gid=yYfKJ8SDKD4DyYfKJ8SD80WM8dCYi4ITAdChDAV7Kj8lYYq82DEEDE8882yy4j8822d0jy8W; cache_feeds=[]; web_session=04006956c3f60c80fff1fbac8f374b4aa61388; unread={%22ub%22:%2265b84d7a000000002c0127d3%22%2C%22ue%22:%2265b170e3000000002c02b9f3%22%2C%22uc%22:30}; abRequestId=4cd36109-4b75-547a-be2a-9d570227b67a',
-            'pragma': 'no-cache',
-            'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'document',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'same-origin',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-        }
-    def antiDetect(self,response,url):
+        self.headers = json.load(open('headers.json','r'))
+    def antiDetect(self,response,url,headers):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url:
             time.sleep(5)
-            response = requests.get(url,headers = self.headers)
+            response = requests.get(url,headers = headers)
         return response
+    
+    def updateCookie(self,url):
+        response= requests.get(url,headers = self.headers['htmlHeaders'])
+        newAd = response.headers['Set-Cookie'].split('; ')[0]
+        newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
+        newCookie = '; '.join(newCookie)
+        # print(newCookie)
+        self.headers['cookie'] = newCookie
     
     def homePageScraper(self,userlinkPool):
         start = time.perf_counter()
@@ -39,18 +33,24 @@ class Scraper():
             requests.get('http://127.0.0.1:3001/start')    
         num = requests.get('http://127.0.0.1:3001/count').content.decode("utf-8")
         print(num)
-        requestnum = 10000 - int(num) # the num of post we need 
+        requestnum = 100000 - int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
 
-        url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
+        url =  "https://www.xiaohongshu.com/explore"
+        headers = deepcopy(self.headers['htmlHeaders'])
+        update = 0 
+        suceed = 0
+        crash = 0
         while True:
-            if userlinkPool.qsize()>5:
+            # print('success:',suceed,' url update:',update, ' crash: ',crash,end='\r')
+            if userlinkPool.qsize()>20:
                 time.sleep(1)
                 continue
             try:
-                response = requests.get(url ,headers = self.headers)
-                response = self.antiDetect(response,url)
-                # self.headers = response.headers
+                headers['cookie'] = self.headers['cookie']
+                response = requests.get(url ,headers = headers)
+                # response = self.antiDetect(response,url,headers)
+
                 html = bs(response.content,'html.parser')
                 # print(html.prettify())
                 # open('a.html','w').write(html.prettify())
@@ -60,20 +60,28 @@ class Scraper():
                 for userlink in userlinks:
                     userlinkPool.put(userlink)
                 progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
-                percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(requestnum)))
+                percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(progress+requestnum)))
                 print(f'\r progress: {percent}% Complete', end = '\r')
-                if len(userlinks) == 0:
-                    url = "https://www.xiaohongshu.com/explore" if url != "https://www.xiaohongshu.com/explore" else 'https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend'
-                    # print(url)
-                    continue
-                if progress>= requestnum:
+
+                if progress>= progress+requestnum:
                     end = time.perf_counter()
                     print('\n Time is %4f hours'%((end - start)/3600)) 
                     break 
+
+                if len(userlinks) == 0:
+                    self.updateCookie(url)
+                    update += 1   
+                    continue
+                suceed +=1 
             except:
+                # traceback.print_exc()
+                crash+=1
+                # return
                 continue
 
     def userPageScraper(self,userlinkPool,userInfoPipline,userLog): 
+        headers = deepcopy(self.headers['htmlHeaders'])
+        headers['cookie'] = self.headers['cookie']
         while True:
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
                 time.sleep(1)
@@ -83,10 +91,11 @@ class Scraper():
                 continue
             userLog.append(userlink)
             try:
-                response = requests.get(userlink,headers = self.headers)
-                response = self.antiDetect(response,userlink)
+                response = requests.get(userlink,headers = headers)
+                response = self.antiDetect(response,userlink,headers)
                 # self.headers = response.headers
                 soup = bs(response.content,'html.parser')
+                # open('a.html','w').write(soup.prettify())
                 userInfo = getUser(soup)    
                 if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
                     linklist =soup.findAll('a','title')
@@ -95,31 +104,37 @@ class Scraper():
                         userInfo.pop('follow')
                         # print(userInfo)
                         userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in linklist[:10]]})
-                # return 
+                return 
             except:
-                # print(response.url)
+                self.updateCookie(userlink)
+                # print(response.headers)
                 # traceback.print_exc()
                 # return 
                 # print('fail on users')
                 continue
             
     def postPageScrapers(self,userInfoPipline):
+        headers = deepcopy(self.headers['htmlHeaders'])
         while True:
             if userInfoPipline.empty():
                 time.sleep(1)
                 continue
+            headers['cookie'] = self.headers['cookie']
             userInfo,links = userInfoPipline.get().values()
             idx = 0
             userInfo['posts'] = []
             for link in links:
                 try:
                     url = 'https://www.xiaohongshu.com'+link
-                    response = requests.get(url,headers = self.headers)
-                    response = self.antiDetect(response,url)
+                    response = requests.get(url,headers = headers)
+                    response = self.antiDetect(response,url,headers)
 
                     soup = bs(response.content.decode('utf-8'),'html.parser')
+                    
                     idx,post= grabing(soup,self.headers,userInfo,idx)
+                    # return 
                 except:
+                    self.updateCookie(url)
                     # traceback.print_exc()
                     # return
                     # print('fail on post')
@@ -147,7 +162,8 @@ def start():
     userLog = Manager().list(userlog)
     scraper = Scraper(userScrapers,postScrapers)
     processes = []
-    processes.append(Process(target = scraper.homePageScraper,args=[userlinkPool]))
+    for _ in range(1):
+        processes.append(Process(target = scraper.homePageScraper,args=[userlinkPool]))
     for _ in range(scraper.userScraper):
         processes.append(Process(target=scraper.userPageScraper,args=[userlinkPool,userInfoPipline,userLog]))
     for _ in range (scraper.postScraper):
