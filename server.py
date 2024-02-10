@@ -1,5 +1,4 @@
 from copy import deepcopy
-from http.cookiejar import Cookie
 from flask import Flask,request
 from multiprocessing import Process,Manager
 from bs4 import BeautifulSoup as bs
@@ -13,10 +12,10 @@ class Scraper():
         self.postScraper = postScrapers
         self.headers = json.load(open('headers.json','r'))
 
-    def antiDetect(self,response,url,headers):
+    def antiDetect(self,response,url):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
             time.sleep(5)
-            response = requests.get(url,headers = headers)
+            response = requests.get(url,headers=self.headers['htmlHeaders'])
         return response
     
     def updateCookie(self,url):
@@ -45,13 +44,16 @@ class Scraper():
         # crash = 0
         while True:
             # print('success:',suceed,' url update:',update, ' crash: ',crash,end='\r')
+            progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
+            percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(progress+requestnum)))
+            print(f'\r progress: {percent}% Complete', end = '\r')
             if userlinkPool.qsize()>20:
                 time.sleep(1)
                 continue
             try:
                 headers['cookie'] = cookie
                 response = requests.get(url ,headers = headers)
-                # response = self.antiDetect(response,url,headers)
+                response = self.antiDetect(response,url)
 
                 html = bs(response.content,'html.parser')
                 # print(html.prettify())
@@ -61,9 +63,6 @@ class Scraper():
                 userlinks = ['https://www.xiaohongshu.com'+title['href']for title in html.findAll('a',class_='author')]
                 for userlink in userlinks:
                     userlinkPool.put(userlink)
-                progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
-                percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(progress+requestnum)))
-                print(f'\r progress: {percent}% Complete', end = '\r')
 
                 if progress>= progress+requestnum:
                     end = time.perf_counter()
@@ -85,7 +84,7 @@ class Scraper():
         headers = deepcopy(self.headers['htmlHeaders'])
         cookie = deepcopy(self.headers['cookie'])
         while True:
-            headers['cookie'] = self.headers['cookie']
+            headers['cookie'] = cookie
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
                 time.sleep(1)
                 continue
@@ -95,7 +94,7 @@ class Scraper():
             userLog.append(userlink)
             try:
                 response = requests.get(userlink,headers = headers)
-                response = self.antiDetect(response,userlink,headers)
+                response = self.antiDetect(response,userlink)
                 # self.headers = response.headers
                 soup = bs(response.content,'html.parser')
                 # open('a.html','w').write(soup.prettify())
@@ -134,7 +133,7 @@ class Scraper():
                 try:
                     url = 'https://www.xiaohongshu.com'+link
                     response = requests.get(url,headers = headers)
-                    response = self.antiDetect(response,url,headers)
+                    response = self.antiDetect(response,url)
 
                     soup = bs(response.content.decode('utf-8'),'html.parser')
                     
