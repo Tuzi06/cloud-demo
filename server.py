@@ -14,7 +14,7 @@ class Scraper():
         self.headers = json.load(open('headers.json','r'))
 
     def antiDetect(self,response,url,headers):
-        if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url:
+        if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
             time.sleep(5)
             response = requests.get(url,headers = headers)
         return response
