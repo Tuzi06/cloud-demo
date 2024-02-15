@@ -15,7 +15,15 @@ class Scraper():
     def antiDetect(self,response,url):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
             time.sleep(5)
-            response = requests.get(url,headers=self.headers['htmlHeaders'])
+            if response.status_code != 200:
+                print(response.status_code)
+            else:
+                print(response.url)
+            headers=deepcopy(self.headers['htmlHeaders'])
+            headers['cookie'] = self.updateCookie(url)
+            response = requests.get(url,headers = headers)
+            # print(response.url)
+            # time.sleep(100)
         return response
     
     def updateCookie(self,url):
@@ -31,21 +39,23 @@ class Scraper():
         print(datetime.datetime.now(),'\n')
         if requests.get('http://127.0.0.1:3001/state').content.decode("utf-8") == 'cold':
             requests.get('http://127.0.0.1:3001/start')    
+        userlog = requests.get('http://127.0.0.1:3001/log').json()
         num = requests.get('http://127.0.0.1:3001/count').content.decode("utf-8")
-        print(num)
+        # print(num)
         requestnum = 100000 - int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
 
-        url =  "https://www.xiaohongshu.com/explore"
+        url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
         headers = deepcopy(self.headers['htmlHeaders'])
         cookie = deepcopy(self.headers['cookie'])
-        # update = 0 
-        # suceed = 0
-        # crash = 0
+      
+        update = 0 
+        suceed = 0
+        crash = 0
+
         while True:
-            # print('success:',suceed,' url update:',update, ' crash: ',crash,end='\r')
             progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
-            percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(progress+requestnum)))
+            percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
             print(f'\r progress: {percent}% Complete', end = '\r')
             if userlinkPool.qsize()>20:
                 time.sleep(1)
@@ -61,37 +71,44 @@ class Scraper():
                 # time.sleep(5)
                 # return 
                 userlinks = ['https://www.xiaohongshu.com'+title['href']for title in html.findAll('a',class_='author')]
+                
+                # print('success:',suceed,' url update:',update, ' crash:',crash,' num of userlinks:',len(userlinks),end='\r')
+                
+                if len(userlinks) != 0 and len(userlinks)<20:
+                    # open('a.html','w').write(html.prettify())
+                    print('response has errors')
+                    return 
                 for userlink in userlinks:
-                    userlinkPool.put(userlink)
+                    userid = userlink.split('/')[-1]
+                    if userid not in userlog:
+                        userlinkPool.put(userlink)
+                        userlog.append(userid)
 
-                if progress>= progress+requestnum:
+                if progress>= int(num)+requestnum:
                     end = time.perf_counter()
                     print('\n Time is %4f hours'%((end - start)/3600)) 
                     break 
 
                 if len(userlinks) == 0:
                     cookie = self.updateCookie(url)
-                    # update += 1   
-                    continue
-                # suceed +=1 
+                    update += 1  
+                    continue 
+                suceed +=1 
             except:
-                # traceback.print_exc()
-                # crash+=1
-                # return
+                traceback.print_exc()
+                crash+=1
+                return
                 continue
 
-    def userPageScraper(self,userlinkPool,userInfoPipline,userLog): 
+    def userPageScraper(self,userlinkPool,userInfoPipline): 
         headers = deepcopy(self.headers['htmlHeaders'])
-        cookie = deepcopy(self.headers['cookie'])
+        # cookie = deepcopy(self.headers['cookie'])
         while True:
-            headers['cookie'] = cookie
+            # headers['cookie'] = cookie
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
                 time.sleep(1)
                 continue
             userlink = userlinkPool.get()
-            if userlink in userLog:
-                continue
-            userLog.append(userlink)
             try:
                 response = requests.get(userlink,headers = headers)
                 response = self.antiDetect(response,userlink)
@@ -120,12 +137,12 @@ class Scraper():
             
     def postPageScrapers(self,userInfoPipline):
         headers = deepcopy(self.headers['htmlHeaders'])
-        cookie = deepcopy(self.headers['cookie'])
+        # cookie = deepcopy(self.headers['cookie'])
         while True:
             if userInfoPipline.empty():
                 time.sleep(1)
                 continue
-            headers['cookie'] = cookie
+            # headers['cookie'] = cookie
             userInfo,links = userInfoPipline.get().values()
             idx = 0
             userInfo['posts'] = []
@@ -136,18 +153,17 @@ class Scraper():
                     response = self.antiDetect(response,url)
 
                     soup = bs(response.content.decode('utf-8'),'html.parser')
-                    
                     idx,post= grabing(soup,self.headers,userInfo,idx)
                     # return 
                 except:
+                    # traceback.print_exc()
+                    # return
+                    # print('fail on post')
                     try:
                         cookie = self.updateCookie(url)
                         continue
                     except:
                         continue
-                    # traceback.print_exc()
-                    # return
-                    # print('fail on post')
                 post['url'] = url
                 id = requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
                 userInfo['posts'].append(id)
@@ -161,19 +177,18 @@ log.setLevel(logging.ERROR)
 
 @app.route('/start')
 def start():
-    global userInfoPipline,userlinkPool,posts,userLog,scraper,processes
+    global userInfoPipline,userlinkPool,posts,scraper,processes
     userInfoPipline =Manager().Queue()
     userlinkPool =Manager().Queue()
-    print(userInfoPipline.qsize(),userlinkPool.qsize())
+    # print(userInfoPipline.qsize(),userlinkPool.qsize())
     posts = Manager().list()
-    userScrapers,postScrapers,userlog = request.get_json().values()
-    userLog = Manager().list(userlog)
+    userScrapers,postScrapers= request.get_json().values()
     scraper = Scraper(userScrapers,postScrapers)
     processes = []
     for _ in range(1):
         processes.append(Process(target = scraper.homePageScraper,args=[userlinkPool]))
     for _ in range(scraper.userScraper):
-        processes.append(Process(target=scraper.userPageScraper,args=[userlinkPool,userInfoPipline,userLog]))
+        processes.append(Process(target=scraper.userPageScraper,args=[userlinkPool,userInfoPipline]))
     for _ in range (scraper.postScraper):
          processes.append(Process(target=scraper.postPageScrapers,args=[userInfoPipline]))
     for process in processes:

@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 @app.route('/start')
 def init():
-    global db,users,posts,pics
+    global db,users,posts
     uri = "mongodb+srv://tuzi06:00000000@mydb.uwwvnwd.mongodb.net/?retryWrites=true&w=majority"
     client = MongoClient(uri,server_api=ServerApi('1'))
     db = client.data
@@ -21,6 +21,7 @@ def init():
 
     users.drop();posts.drop()
     return 'started'
+
 @app.route('/state')
 def state():
     try:
@@ -31,7 +32,11 @@ def state():
 
 @app.route('/count')
 def count():
-    return str(len(list(posts.find())))
+    return str(posts.count_documents({}))
+
+@app.route('/log')
+def getLog():
+    return users.distinct('_id')
 
 @app.route('/insert',methods = ['POST']) 
 def insert():

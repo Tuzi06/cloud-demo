@@ -2,14 +2,14 @@ import copy,json,requests,traceback
 
 def getUser(soup):
     user = dict() #用于存储信息的组建，使用dict以便后续写入json文档中
-    user['user-id'] = soup.find('span',class_='user-redId').text.split('：')[1]
-    user['user-name'] = soup.find('div',class_ = 'user-name').text
+    user['_id'] = soup.find('span',class_='user-redId').text.split('：')[1]
+    user['name'] = soup.find('div',class_ = 'user-name').text
     user['follow'] = soup.findAll('span',class_='count')[1].text
     user['like'] = soup.findAll('span',class_='count')[2].text
-    user['user-info'] = soup.find('div',class_='user-desc').text if soup.find('div',class_='user-desc')!=None else ''
-    try: user['user-sex'] = str(soup.find('div',class_='gender').find('use')['xlink:href'][1:])
-    except: user['user-sex'] = ''
-    user['user-tag'] = [tag.text for tag in soup.findAll('div',class_='tag-item')]
+    user['info'] = soup.find('div',class_='user-desc').text if soup.find('div',class_='user-desc')!=None else ''
+    try: user['sex'] = str(soup.find('div',class_='gender').find('use')['xlink:href'][1:])
+    except: user['sex'] = ''
+    user['tag'] = [tag.text for tag in soup.findAll('div',class_='tag-item')]
     return user
 
 def findNoteContent(soup,content):
@@ -49,8 +49,8 @@ def findPicture(soup,content,idx):
 
 
 def grabing(soup,headers,user,idx):
-    post = copy.deepcopy(user)
-    post.pop('posts')
+    post = dict()
+    post['user-id'] = user['_id']
     post['post'] = dict()
     findNoteContent(soup,post['post'])
     noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
