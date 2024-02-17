@@ -6,9 +6,9 @@ from pymongo.server_api import ServerApi
 import pymongo
 
 app = Flask(__name__)
-# import logging
-# log = logging.getLogger('werkzeug')
-# log.setLevel(logging.ERROR)
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 @app.route('/start')
 def init():

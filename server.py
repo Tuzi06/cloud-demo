@@ -57,11 +57,12 @@ class Scraper():
         while True:
             progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
             current = time.perf_counter()
-            print('\r speed: %2f'%((progress-lastprogress)/(current-lasttime)),end='\r')
+
+            percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
+            speed =  ("{0:." + str(2) + "f}").forma(t(progress-lastprogress)/(current-lasttime))
+            print(f'\r progress: {percent}% Complete, current speed is {speed} posts per second', end = '\r')
             lasttime = current
             lastprogress = progress
-            # percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
-            # print(f'\r progress: {percent}% Complete', end = '\r')
             if userlinkPool.qsize()>self.userScraper * 2:
                 time.sleep(1)
                 continue
