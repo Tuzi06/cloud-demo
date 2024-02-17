@@ -41,11 +41,12 @@ def getLog():
 @app.route('/insert',methods = ['POST']) 
 def insert():
     data = request.get_json()
-    try:
-        _id = db[data['id']].insert_one(data['data'])
-        return str(_id.inserted_id)
-    except pymongo.errors.OperationFailure:
-        return 'something in insert is wrong'
+    with pymongo.timeout(5):
+        try:
+            _id = db[data['id']].insert_one(data['data'])
+            return str(_id.inserted_id)
+        except pymongo.errors.OperationFailure:
+            return 'something in insert is wrong'
 
 @app.route('/download')
 def download():

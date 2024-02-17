@@ -44,7 +44,7 @@ class Scraper():
         # print(num)
         requestnum = 100000 - int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
-
+        # return 
         url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
         headers = deepcopy(self.headers['htmlHeaders'])
         cookie = deepcopy(self.headers['cookie'])
@@ -52,12 +52,17 @@ class Scraper():
         update = 0 
         suceed = 0
         crash = 0
-
+        lasttime = start
+        lastprogress = 0
         while True:
             progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
-            percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
-            print(f'\r progress: {percent}% Complete', end = '\r')
-            if userlinkPool.qsize()>20:
+            current = time.perf_counter()
+            print('\r speed: %2f'%((progress-lastprogress)/(current-lasttime)),end='\r')
+            lasttime = current
+            lastprogress = progress
+            # percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
+            # print(f'\r progress: {percent}% Complete', end = '\r')
+            if userlinkPool.qsize()>self.userScraper * 2:
                 time.sleep(1)
                 continue
             try:
