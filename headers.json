@@ -15,7 +15,7 @@
         "upgrade-insecure-requests": "1",
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     },
-    "cookie":"abRequestId=d60dfb21-462a-5bd7-a760-561a36e5772b; webBuild=4.1.7; xsecappid=xhs-pc-web; a1=18db6239f24fi3bi1b3fuswuuz6xgcvr1jsqq9m7l30000424039; webId=314b1331dec9a563ea30442c91f92227; websectiga=f3d8eaee8a8c63016320d94a1bd00562d516a5417bc43a032a80cbf70f07d5c0; sec_poison_id=d6f5faea-eda5-4482-89f3-05e0c951ab74; gid=yYfDKJq02dyqyYfDKJqjiVj6J4i3qD3yDqi7MW1ME77uKAq8CkShFA8884J48qj8Dy88qd42; web_session=030037a2e33f1a23570b222da8224afee959b5",
+    "cookie":"abRequestId=915b1de9-53bc-5b30-85cf-661befb5eac8; webBuild=4.1.7; xsecappid=xhs-pc-web; a1=18dbfe2ff08n38oh0lrazybo61d4e0chv2gecymm230000146937; webId=b30b2fe9b96645c692509214ae56db97; websectiga=82e85efc5500b609ac1166aaf086ff8aa4261153a448ef0be5b17417e4512f28; sec_poison_id=481e44fa-7254-4c82-b59e-7598adc9ad51; gid=yYfDidq82YhWyYfDidJiiJv68YIqYlx81F0uk6JvDlKyfdq84d8SxS888y4KjqW8yD8d4KSS; web_session=030037a2e1be4b38b3c773acaa224a5c389151",
     "jsonHeaders": {
         "authority": "edith.xiaohongshu.com",
         "accept": "application/json, text/plain, */*",

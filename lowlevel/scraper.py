@@ -48,7 +48,7 @@ def findPicture(soup,content,idx):
     return idx
 
 
-def grabing(soup,headers,user,idx):
+def grabing(soup,headers,cookie,user,idx):
     post = dict()
     post['user-id'] = user['_id']
     post['post'] = dict()

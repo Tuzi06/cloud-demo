@@ -2,7 +2,7 @@ from copy import deepcopy
 from flask import Flask,request
 from multiprocessing import Process,Manager
 from bs4 import BeautifulSoup as bs
-import time,requests,traceback,datetime,json
+import time,requests,traceback,datetime,json,random
 
 from lowlevel.scraper import getUser,grabing
 class Scraper():
@@ -11,6 +11,8 @@ class Scraper():
         self.userScraper = userScrapers
         self.postScraper = postScrapers
         self.headers = json.load(open('headers.json','r'))
+        self.cookies = json.load(open('cookies.json','r'))
+        # requests.get('https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend',headers = self.headers['htmlHeaders'])
 
     def antiDetect(self,response,url):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
@@ -20,17 +22,19 @@ class Scraper():
             else:
                 print(response.url)
             headers=deepcopy(self.headers['htmlHeaders'])
-            headers['cookie'] = self.updateCookie(url)
+            # headers['cookie'] = self.updateCookie(url)
             response = requests.get(url,headers = headers)
             # print(response.url)
             # time.sleep(100)
         return response
     
     def updateCookie(self,url):
+        return random.choice(self.cookies)
         response= requests.get(url,headers = self.headers['htmlHeaders'])
         newAd = response.headers['Set-Cookie'].split('; ')[0]
         newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
         newCookie = '; '.join(newCookie)
+
         # print(newCookie)
         return newCookie
     
@@ -48,10 +52,10 @@ class Scraper():
         url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
         headers = deepcopy(self.headers['htmlHeaders'])
         cookie = deepcopy(self.headers['cookie'])
-      
         update = 0 
         suceed = 0
         crash = 0
+
         lasttime = start
         lastprogress = 0
         while True:
@@ -59,8 +63,8 @@ class Scraper():
             current = time.perf_counter()
 
             percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
-            speed =  ("{0:." + str(2) + "f}").forma(t(progress-lastprogress)/(current-lasttime))
-            print(f'\r progress: {percent}% Complete, current speed is {speed} posts per second', end = '\r')
+            speed =  ("{0:." + str(2) + "f}").format((progress-lastprogress)/(current-lasttime))
+            print(f'\r progress: {percent}% Completed, speed: {speed} posts per second      ', end = '\r')
             lasttime = current
             lastprogress = progress
             if userlinkPool.qsize()>self.userScraper * 2:
@@ -68,6 +72,7 @@ class Scraper():
                 continue
             try:
                 headers['cookie'] = cookie
+                # headers['cookie'] = random.choice(self.cookies)
                 response = requests.get(url ,headers = headers)
                 response = self.antiDetect(response,url)
 
@@ -80,10 +85,10 @@ class Scraper():
                 
                 # print('success:',suceed,' url update:',update, ' crash:',crash,' num of userlinks:',len(userlinks),end='\r')
                 
-                if len(userlinks) != 0 and len(userlinks)<20:
-                    # open('a.html','w').write(html.prettify())
-                    print('response has errors')
-                    return 
+                # if len(userlinks) != 0 and len(userlinks)<20:
+                #     # open('a.html','w').write(html.prettify())
+                #     print('response has errors')
+                #     return 
                 for userlink in userlinks:
                     userid = userlink.split('/')[-1]
                     if userid not in userlog:
@@ -97,6 +102,7 @@ class Scraper():
 
                 if len(userlinks) == 0:
                     cookie = self.updateCookie(url)
+                    # print(cookie)
                     update += 1  
                     continue 
                 suceed +=1 
@@ -108,7 +114,7 @@ class Scraper():
 
     def userPageScraper(self,userlinkPool,userInfoPipline): 
         headers = deepcopy(self.headers['htmlHeaders'])
-        # cookie = deepcopy(self.headers['cookie'])
+        cookie = deepcopy(self.headers['cookie'])
         while True:
             # headers['cookie'] = cookie
             if userlinkPool.empty() or userInfoPipline.qsize()>10:
@@ -152,6 +158,8 @@ class Scraper():
             userInfo,links = userInfoPipline.get().values()
             idx = 0
             userInfo['posts'] = []
+            # cookie = random.choice(self.cookies)
+            cookie = self.headers['cookie']
             for link in links:
                 try:
                     url = 'https://www.xiaohongshu.com'+link
@@ -159,7 +167,7 @@ class Scraper():
                     response = self.antiDetect(response,url)
 
                     soup = bs(response.content.decode('utf-8'),'html.parser')
-                    idx,post= grabing(soup,self.headers,userInfo,idx)
+                    idx,post= grabing(soup,self.headers,cookie,userInfo,idx)
                     # return 
                 except:
                     # traceback.print_exc()
@@ -173,7 +181,8 @@ class Scraper():
                 post['url'] = url
                 id = requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
                 userInfo['posts'].append(id)
-            requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})         
+            requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})   
+            # break      
 
 app = Flask(__name__)
 
