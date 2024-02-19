@@ -29,7 +29,6 @@ class Scraper():
         return response
     
     def updateCookie(self,url):
-        return random.choice(self.cookies)
         response= requests.get(url,headers = self.headers['htmlHeaders'])
         newAd = response.headers['Set-Cookie'].split('; ')[0]
         newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
@@ -101,7 +100,10 @@ class Scraper():
                     break 
 
                 if len(userlinks) == 0:
-                    cookie = self.updateCookie(url)
+                    if int(progress) %10 !=0:
+                        cookie = self.updateCookie(url)
+                    else:
+                        cookie = random.choice(self.cookies)
                     # print(cookie)
                     update += 1  
                     continue 
