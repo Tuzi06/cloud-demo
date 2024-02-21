@@ -55,8 +55,11 @@ If you would like custom and connect to your own database (which you should), yo
 ## Usage
 To start scraping processes, a request with json:
 ```
-{"userScrapers":20,
-"postScrapers":60}
+{
+    "userScrapers":20,
+    "postScrapers":60,
+    "dburl":"http://127.0.0.1" # your database middleware server that can be run indepedently
+}
 ```
 needs to sent to "/start" route. Notice: the ratio between number of userScrapers and postScrapers should be at least 1:3, and are recommand in 1:2 for a consistent run.
 
