@@ -1,11 +1,11 @@
-# Introduction
-
-
+# The Scraper
+This project is to scrape posts contents on [小红书](https://www.xiaohongshu.com/explore) a chinese version of instagram. The entire process in devided to Scraping Server (with mutliple stages and parallel processing for each stage to maximize performance) and Database Server
+for distributing the bots or workload to different machines to enhance the reliability and overall performance.
 ## Installation
 ```python
 pip3 install -r requirements.txt
 ```
-## Configuration
+## Settings
 If you would like custom and connect to your own database (which you should), your db file needs to have routes:
 * start (for starting in the database middleware to contect with your external database (here I use mongodb to store all the data set)
 * state (return value should either be "started" or "cold" to define whether the server is started)
@@ -17,6 +17,11 @@ If you would like custom and connect to your own database (which you should), yo
         return str(_id.inserted_id)
     ```
   for your insert query and if possible return the id of that document or row(unique identifier for post).
+
+If you would like change the filter of users, you can change the if statement at the bottom of userPageScraper in server.py which is: 
+```python
+if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
+```
   
 ## Data Structure in Database
 ### User Example:
@@ -52,7 +57,7 @@ If you would like custom and connect to your own database (which you should), yo
  'url': 'https://www.xiaohongshu.com/user/profile/617d6fd20000000002021206/65cdfd270000000007004282'}
 ```
 
-## Usage
+## How to Use
 To start scraping processes, a request with json:
 ```
 {
@@ -61,7 +66,13 @@ To start scraping processes, a request with json:
     "dburl":"http://127.0.0.1" # your database middleware server that can be run indepedently
 }
 ```
-needs to sent to "/start" route. Notice: the ratio between number of userScrapers and postScrapers should be at least 1:3, and are recommand in 1:2 for a consistent run.
+needs to sent to "/start" route. 
+
+###Notice: 
+
+The ratio between number of userScrapers and postScrapers should be at least 1:3, and are recommand in 1:2 for a consistent run. As each post may take about 2 to 2.5 seconds to scrape, the overall scraping speed for script can be defined as 1/2 of postScrapers, and peak perfromance will be the internet bendwidth (the difference between 60 postScrapers and 100 postScrapers are minimal, at least this is the result when I tested).Also, a vpn or some proxy service are recommand.
+
+As this script can be seen as a DDOS attack, we kind of spam the server with get requests, a high number of scrapers setting can leads to an ip tempoary block by server or so. For reference the setting in the example above has the performance of a 100k posts scraping job can be done in 3 hours with lightly cpu usage.
 
 We can test the availability of cookies in cookies.json as follows:
 ``` python
@@ -111,4 +122,5 @@ open('cookies.json','w').write(json.dumps(cookies,indent=4))
 Notice: make sure you have the latest version of webdriver that correspond your operating system.
 
 ## Todos
-
+* Find a way to get the around the recapatcha things and ip block if setting are high enough.
+* Scrape more replys, something like reply of reply of reply? 
