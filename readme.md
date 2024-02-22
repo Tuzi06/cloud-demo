@@ -1,6 +1,6 @@
 # The Scraper
-This project is to scrape posts contents on [小红书](https://www.xiaohongshu.com/explore) a chinese version of instagram. The entire process in devided to Scraping Server (with mutliple stages and parallel processing for each stage to maximize performance) and Database Server
-for distributing the bots or workload to different machines to enhance the reliability and overall performance.
+This project is to scrape post contents on [小红书](https://www.xiaohongshu.com/explore) a chinese version of instagram. The entire process is devided to Scraping Server (with mutliple stages and parallel processing for each stage to maximize performance) and Database Server
+for distributing the bots or workload to different machines and places( for example: different region on aws) to enhance the reliability and overall performance.
 ## Installation
 ```python
 pip3 install -r requirements.txt
