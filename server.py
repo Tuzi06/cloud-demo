@@ -4,14 +4,16 @@ from multiprocessing import Process,Manager
 from bs4 import BeautifulSoup as bs
 import time,requests,traceback,datetime,json,random
 
-from lowlevel.scraper import getUser,grabing
+from scraper import getUser,grabing
 class Scraper():
-    def __init__(self,userScrapers,postScrapers):
+    def __init__(self,userScrapers,postScrapers,dburl,goal):
         self.state = 'ready'
         self.userScraper = userScrapers
         self.postScraper = postScrapers
+        self.dburl = dburl
         self.headers = json.load(open('headers.json','r'))
         self.cookies = json.load(open('cookies.json','r'))
+        self.goal = goal
         # requests.get('https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend',headers = self.headers['htmlHeaders'])
 
     def antiDetect(self,response,url):
@@ -40,17 +42,16 @@ class Scraper():
     def homePageScraper(self,userlinkPool):
         start = time.perf_counter()
         print(datetime.datetime.now(),'\n')
-        if requests.get('http://127.0.0.1:3001/state').content.decode("utf-8") == 'cold':
-            requests.get('http://127.0.0.1:3001/start')    
-        userlog = requests.get('http://127.0.0.1:3001/log').json()
-        num = requests.get('http://127.0.0.1:3001/count').content.decode("utf-8")
+        if requests.get(f'{self.dburl}/state').content.decode("utf-8") == 'cold':
+            requests.get(f'{self.dburl}/start')    
+        num = requests.get(f'{self.dburl}/count').content.decode("utf-8")
         # print(num)
-        requestnum = 100000 - int(num) # the num of post we need 
+        requestnum = self.goal- int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
         # return 
         url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
         headers = deepcopy(self.headers['htmlHeaders'])
-        cookie = deepcopy(self.headers['cookie'])
+        cookie = deepcopy(self.cookies[0])
         update = 0 
         suceed = 0
         crash = 0
@@ -58,7 +59,7 @@ class Scraper():
         lasttime = start
         lastprogress = 0
         while True:
-            progress= int(requests.get('http://127.0.0.1:3001/count').content.decode("utf-8"))
+            progress= int(requests.get(f'{self.dburl}/count').content.decode("utf-8"))
             current = time.perf_counter()
 
             percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
@@ -89,10 +90,7 @@ class Scraper():
                 #     print('response has errors')
                 #     return 
                 for userlink in userlinks:
-                    userid = userlink.split('/')[-1]
-                    if userid not in userlog:
-                        userlinkPool.put(userlink)
-                        userlog.append(userid)
+                    userlinkPool.put(userlink)
 
                 if progress>= int(num)+requestnum:
                     end = time.perf_counter()
@@ -100,7 +98,7 @@ class Scraper():
                     break 
 
                 if len(userlinks) == 0:
-                    if int(progress) %10 !=0:
+                    if int(progress)%2!=0:
                         cookie = self.updateCookie(url)
                     else:
                         cookie = random.choice(self.cookies)
@@ -119,7 +117,7 @@ class Scraper():
         cookie = deepcopy(self.headers['cookie'])
         while True:
             # headers['cookie'] = cookie
-            if userlinkPool.empty() or userInfoPipline.qsize()>10:
+            if userlinkPool.empty() or userInfoPipline.qsize()>self.postScraper:
                 time.sleep(1)
                 continue
             userlink = userlinkPool.get()
@@ -129,14 +127,17 @@ class Scraper():
                 # self.headers = response.headers
                 soup = bs(response.content,'html.parser')
                 # open('a.html','w').write(soup.prettify())
-                userInfo = getUser(soup)    
-                if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
-                    linklist =soup.findAll('a','title')
-                    if len(linklist)>=10:
-                        userInfo.pop('like')
-                        userInfo.pop('follow')
-                        # print(userInfo)
-                        userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in linklist[:10]]})
+                userInfo = getUser(soup)   
+                if requests.get(f'{self.dburl}/checkExist',json={'data':userInfo['_id']}).json()==[]:
+                    if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
+                        linklist =soup.findAll('a','title')
+                        if len(linklist)>=10:
+                            userInfo.pop('like')
+                            userInfo.pop('follow')
+                            # print(userInfo)
+                            userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in linklist[:10]]})
+                else:
+                    requests.post(f'{self.dburl}/addlog',json = {'id':'users','data':userInfo})
                 # return 
             except:
                 try:
@@ -146,8 +147,7 @@ class Scraper():
                 # print(response.headers)
                 # traceback.print_exc()
                 # return 
-                # print('fail on users')
-                
+                # print('fail on users')            
             
     def postPageScrapers(self,userInfoPipline):
         headers = deepcopy(self.headers['htmlHeaders'])
@@ -161,7 +161,7 @@ class Scraper():
             idx = 0
             userInfo['posts'] = []
             # cookie = random.choice(self.cookies)
-            cookie = self.headers['cookie']
+            cookie = self.cookies[0]
             for link in links:
                 try:
                     url = 'https://www.xiaohongshu.com'+link
@@ -181,9 +181,9 @@ class Scraper():
                     except:
                         continue
                 post['url'] = url
-                id = requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
+                id = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
                 userInfo['posts'].append(id)
-            requests.post(f"http://127.0.0.1:3001/insert",json = {'id':'users','data':userInfo})   
+            requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})   
             # break      
 
 app = Flask(__name__)
@@ -199,8 +199,8 @@ def start():
     userlinkPool =Manager().Queue()
     # print(userInfoPipline.qsize(),userlinkPool.qsize())
     posts = Manager().list()
-    userScrapers,postScrapers= request.get_json().values()
-    scraper = Scraper(userScrapers,postScrapers)
+    userScrapers,postScrapers,dburl,goal = request.get_json().values()
+    scraper = Scraper(userScrapers,postScrapers,dburl,goal)
     processes = []
     for _ in range(1):
         processes.append(Process(target = scraper.homePageScraper,args=[userlinkPool]))

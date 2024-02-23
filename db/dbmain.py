@@ -1,11 +1,12 @@
 # The main file that cloud server part code will interact with
 
+from concurrent.futures import thread
 from flask import Flask,request
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-import pymongo
+import pymongo,time
 
-# app = Flask(__name__)
+app = Flask(__name__)
 # import logging
 # log = logging.getLogger('werkzeug')
 # log.setLevel(logging.ERROR)
@@ -32,11 +33,25 @@ def state():
 
 @app.route('/count')
 def count():
+    while state() =='cold':
+        print('cold')
+        time.sleep(1)
     return str(posts.count_documents({}))
 
-@app.route('/log')
-def getLog():
-    return users.distinct('_id')
+@app.route('/checkExist')
+def checkExist():
+    id = request.get_json()['data']
+    return  list(users.find({'_id':id}))
+
+@app.route('/addlog',methods = ['POST']) 
+def add():
+    data = request.get_json()
+    with pymongo.timeout(5):
+        try:
+            _id = db[data['id']].insert_one(data['data'])
+            return str(_id.inserted_id)
+        except pymongo.errors.OperationFailure:
+            return 'something in insert is wrong'
 
 @app.route('/insert',methods = ['POST']) 
 def insert():
@@ -53,4 +68,4 @@ def download():
     pass
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=3001)
+    app.run(host='0.0.0.0', port=3001,threaded=False,processes=1)
