@@ -26,14 +26,14 @@ def init():
 @app.route('/state')
 def state():
     try:
-        str(len(list(posts.find())))
+        str(posts.count_documents({}))
         return 'started'
     except:
         return 'cold'
 
 @app.route('/count')
 def count():
-    while state() =='cold':
+    while state() == 'cold':
         print('cold')
         time.sleep(1)
     return str(posts.count_documents({}))
