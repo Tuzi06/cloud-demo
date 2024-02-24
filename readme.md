@@ -122,4 +122,5 @@ Notice: make sure you have the latest version of webdriver that correspond your 
 
 ## Todos
 * Find a way to get the around the recapatcha things and ip block if setting are high enough.
-* Scrape more replys, something like reply of reply of reply? 
+* Scrape more replys, something like reply of reply of reply?
+* Experience and test the realtionship between performance and better hardwares( a higher bendwidth and a higher tier mongodb servvice)
