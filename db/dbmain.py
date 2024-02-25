@@ -66,7 +66,9 @@ def insert():
         if res['id']=='posts':
             return [str(id) for id in posts.insert_many(data).inserted_ids]
         elif res['id']=='users':
-            users.replace_one({'longID':data['longID']},data);return ''
+            longID = data.pop('longID')
+            users.replace_one({'longID':longID},data)
+            return ''
     except pymongo.errors.OperationFailure:
         return 'something in insert is wrong'
 

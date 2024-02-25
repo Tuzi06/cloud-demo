@@ -2,7 +2,7 @@ import copy,json,requests,traceback
 
 def getUser(soup):
     user = dict() #用于存储信息的组建，使用dict以便后续写入json文档中
-    user['_id'] = soup.find('span',class_='user-redId').text.split('：')[1]
+    user['id'] = soup.find('span',class_='user-redId').text.split('：')[1]
     user['name'] = soup.find('div',class_ = 'user-name').text
     user['follow'] = soup.findAll('span',class_='count')[1].text
     user['like'] = soup.findAll('span',class_='count')[2].text
@@ -32,27 +32,24 @@ def findComment(data,content):
     
     content['comments'] = comments 
     
-def findPicture(soup,content,idx):
-    urls = []
+def findPicture(soup,content,idx,id):
     try:
         data = json.loads(soup.findAll('script')[-1].text.split('=')[1].replace('undefined','null')) 
         picUrls = data['note']['noteDetailMap'][data['note']['firstNoteId']]['note']['imageList']
        
         content['pictures'] = {}
         for url in picUrls:
-            content['pictures'][f"{content['user-id']}-{idx}"] = url['infoList'][1]['url']
+            content['pictures'][f"{id}-{idx}"] = url['infoList'][1]['url']
             idx+=1
     except:
         url = soup.find('div',class_='render-ssr-image player-container')['style'].split('(')[1][:-1]
-        content['pictures'] = {f"{content['user-id']}-{idx}":url}
+        content['pictures'] = {f"{id}-{idx}":url}
     return idx
 
 
 def grabing(soup,headers,cookie,user,idx):
     post = dict()
-    post['user-id'] = user['_id']
-    post['post'] = dict()
-    findNoteContent(soup,post['post'])
+    findNoteContent(soup,post)
     noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
     url = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?note_id='+noteId+'&cursor=&top_comment_id=&image_formats=jpg,webp,avif'
     header = copy.deepcopy(headers['htmlHeaders'])
@@ -61,6 +58,6 @@ def grabing(soup,headers,cookie,user,idx):
     # print(response.json())
     commentData = response.json()['data']['comments']
     
-    findComment(commentData,post['post'])
-    idx = findPicture(soup,post,idx)
+    findComment(commentData,post)
+    idx = findPicture(soup,post,idx,user['id'])
     return idx,post
