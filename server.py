@@ -18,13 +18,14 @@ class Scraper():
 
     def antiDetect(self,response,url):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
-            time.sleep(5)
+            # time.sleep(2)
             if response.status_code != 200:
                 print(response.status_code)
-            else:
-                print(response.url)
+            # else:
+            #     print(response.url)
             headers=deepcopy(self.headers['htmlHeaders'])
             # headers['cookie'] = self.updateCookie(url)
+            headers['cookie'] = random.choice(self.cookies)
             response = requests.get(url,headers = headers)
             # print(response.url)
             # time.sleep(100)
@@ -58,13 +59,14 @@ class Scraper():
 
         lasttime = start
         lastprogress = 0
+        userlinks = []
         while True:
             progress= int(requests.get(f'{self.dburl}/count').content.decode("utf-8"))
             current = time.perf_counter()
 
             percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
             speed =  ("{0:." + str(2) + "f}").format((progress-lastprogress)/(current-lasttime))
-            print(f'\r progress: {percent}% Completed, speed: {speed} posts per second      ', end = '\r')
+            print(f'\r progress: {percent}% Completed, speed: {speed} posts per second, last batch size:{len(userlinks)}    ', end = '\r')
             lasttime = current
             lastprogress = progress
             if userlinkPool.qsize()>self.userScraper * 2:
@@ -81,7 +83,7 @@ class Scraper():
                 # open('a.html','w').write(html.prettify())
                 # time.sleep(5)
                 # return 
-                userlinks = ['https://www.xiaohongshu.com'+title['href']for title in html.findAll('a',class_='author')]
+                userlinks =[title['href']for title in html.findAll('a',class_='author')]
                 
                 # print('success:',suceed,' url update:',update, ' crash:',crash,' num of userlinks:',len(userlinks),end='\r')
                 
@@ -89,10 +91,14 @@ class Scraper():
                 #     # open('a.html','w').write(html.prettify())
                 #     print('response has errors')
                 #     return 
-                for userlink in userlinks:
-                    userlinkPool.put(userlink)
+                filtered = requests.get(f'{self.dburl}/checkExist',json = {'data':userlinks}).json()
+                # print(filtered)
+                for userlink in filtered:
+                    userlinkPool.put('https://www.xiaohongshu.com'+userlink)
+                if len(filtered)!=0:
+                    requests.post(f'{self.dburl}/addlog',json ={'id':'users','data':[userlink.split('/')[-1] for userlink in filtered]})
 
-                if progress>= int(num)+requestnum:
+                if progress>=int(num)+requestnum:
                     end = time.perf_counter()
                     print('\n Time is %4f hours'%((end - start)/3600)) 
                     break 
@@ -128,16 +134,13 @@ class Scraper():
                 soup = bs(response.content,'html.parser')
                 # open('a.html','w').write(soup.prettify())
                 userInfo = getUser(soup)   
-                if requests.get(f'{self.dburl}/checkExist',json={'data':userInfo['_id']}).json()==[]:
-                    if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like']:
-                        linklist =soup.findAll('a','title')
-                        if len(linklist)>=10:
-                            userInfo.pop('like')
-                            userInfo.pop('follow')
-                            # print(userInfo)
-                            userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in linklist[:10]]})
-                else:
-                    requests.post(f'{self.dburl}/addlog',json = {'id':'users','data':userInfo})
+                linklist =soup.findAll('a','title')
+                if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like'] and len(linklist)>=10:
+                    userInfo['longID'] = userlink.split('/')[-1]
+                    # userInfo.pop('like')
+                    # userInfo.pop('follow')
+                    # print(userInfo)
+                    userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in linklist[:10]]})
                 # return 
             except:
                 try:
@@ -162,6 +165,7 @@ class Scraper():
             userInfo['posts'] = []
             # cookie = random.choice(self.cookies)
             cookie = self.cookies[0]
+            posts=[]
             for link in links:
                 try:
                     url = 'https://www.xiaohongshu.com'+link
@@ -181,8 +185,11 @@ class Scraper():
                     except:
                         continue
                 post['url'] = url
-                id = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
-                userInfo['posts'].append(id)
+                posts.append(post)
+                # id = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
+                # userInfo['posts'].append(id)
+            if len(posts)!=0:
+                userInfo['posts'] = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts}).json()
             requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})   
             # break      
 
