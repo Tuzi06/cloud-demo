@@ -68,9 +68,9 @@ def insert():
         elif res['id']=='users':
             longID = data.pop('longID')
             users.replace_one({'longID':longID},data)
-            return ''
+            return []
     except pymongo.errors.OperationFailure:
-        return 'something in insert is wrong'
+        return []
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3001,threaded = True)

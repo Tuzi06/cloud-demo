@@ -164,7 +164,6 @@ class Scraper():
             idx = 0
             userInfo['posts'] = []
             # cookie = random.choice(self.cookies)
-            cookie = self.cookies[0]
             posts=[]
             for link in links:
                 try:
@@ -173,7 +172,7 @@ class Scraper():
                     response = self.antiDetect(response,url)
 
                     soup = bs(response.content.decode('utf-8'),'html.parser')
-                    idx,post= grabing(soup,self.headers,cookie,userInfo,idx)
+                    idx,post= grabing(soup,self,userInfo,idx)
                     # return 
                 except:
                     # traceback.print_exc()
@@ -188,10 +187,13 @@ class Scraper():
                 posts.append(post)
                 # id = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
                 # userInfo['posts'].append(id)
-                
             if len(posts)!=0:
-                userInfo['posts'] = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts}).json()
-            requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})   
+                res = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts})
+                try:
+                    userInfo['posts'] = res.json()
+                except:
+                   print(res.content)
+                requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})   
             # break      
 
 app = Flask(__name__)

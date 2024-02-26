@@ -1,4 +1,4 @@
-import copy,json,requests,traceback
+import copy,json,requests,traceback,random
 
 def getUser(soup):
     user = dict() #用于存储信息的组建，使用dict以便后续写入json文档中
@@ -47,17 +47,19 @@ def findPicture(soup,content,idx,id):
     return idx
 
 
-def grabing(soup,headers,cookie,user,idx):
+def grabing(soup,self,user,idx):
     post = dict()
     findNoteContent(soup,post)
     noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
     url = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?note_id='+noteId+'&cursor=&top_comment_id=&image_formats=jpg,webp,avif'
-    header = copy.deepcopy(headers['htmlHeaders'])
-    header['Cookie'] = cookie
+    header = copy.deepcopy(self.headers['htmlHeaders'])
+    header['Cookie'] = random.choice(self.cookies)
     response= requests.get(url,headers = header)
     # print(response.json())
-    commentData = response.json()['data']['comments']
-    
+    try:
+        commentData = response.json()['data']['comments']
+    except:
+        commentData = []
     findComment(commentData,post)
     idx = findPicture(soup,post,idx,user['id'])
     return idx,post
