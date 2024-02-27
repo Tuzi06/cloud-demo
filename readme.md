@@ -1,4 +1,4 @@
-# The Scraper 2.0  (Not finish yet)
+# The Scraper 2.0  (Not finish yet, information below may not fit how code is working)
 This project is to scrape post contents on [小红书](https://www.xiaohongshu.com/explore) a chinese version of instagram. The entire process is devided to Scraping Server (with mutliple stages and parallel processing for each stage to maximize performance) and Database Server, for distributing the bots or workload to different machines and places( for example: different region on aws) to enhance the reliability and overall performance.
 ## Installation
 ```python
