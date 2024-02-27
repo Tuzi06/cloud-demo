@@ -16,7 +16,7 @@ def findNoteContent(soup,content):
     content['title'] = soup.find('div',{'id':'detail-title'}).text if soup.find('div',{'id':'detail-title'})!= None else ''
     text = soup.find('div',{'id':'detail-desc'})
     content['text'] = text.find('span').text
-    content['tag'] = [tag.text[1:] for tag in soup.findAll('a',class_='tag tag-search')]
+    content['tag'] = soup.find('meta',{'name':'keywords'})['content'].split(', ')
 
 def findComment(data,content):
     comments = []
