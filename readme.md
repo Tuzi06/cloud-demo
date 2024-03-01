@@ -125,3 +125,4 @@ Notice: make sure you have the latest version of webdriver that correspond your 
 * Scrape more replys, something like reply of reply of reply?
 * Experience and test the realtionship between performance and better hardwares( a higher bendwidth and a higher tier mongodb servvice)
 * Think about a new way to represent scraping speed ( current one seems inaccurate)
+* rewrite the checkExist function in dbmain.py (should have a faster way to check the log)
