@@ -16,19 +16,15 @@ class Scraper():
         self.goal = goal
         # requests.get('https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend',headers = self.headers['htmlHeaders'])
 
-    def antiDetect(self,response,url):
+    def antiDetect(self,response,url,stage):
         if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
             # time.sleep(2)
             if response.status_code != 200:
-                print(response.status_code)
-            # else:
-            #     print(response.url)
+                print(response.status_code,'  ',stage)
             headers=deepcopy(self.headers['htmlHeaders'])
             # headers['cookie'] = self.updateCookie(url)
             headers['cookie'] = random.choice(self.cookies)
             response = requests.get(url,headers = headers)
-            # print(response.url)
-            # time.sleep(100)
         return response
     
     def updateCookie(self,url):
@@ -36,8 +32,6 @@ class Scraper():
         newAd = response.headers['Set-Cookie'].split('; ')[0]
         newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
         newCookie = '; '.join(newCookie)
-
-        # print(newCookie)
         return newCookie
     
     def homePageScraper(self,userlinkPool):
@@ -46,10 +40,8 @@ class Scraper():
         if requests.get(f'{self.dburl}/state').content.decode("utf-8") == 'cold':
             requests.get(f'{self.dburl}/start')    
         num = requests.get(f'{self.dburl}/count').content.decode("utf-8")
-        # print(num)
         requestnum = self.goal- int(num) # the num of post we need 
         print(f"{requestnum} post need be scrapped")
-        # return 
         url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
         headers = deepcopy(self.headers['htmlHeaders'])
         cookie = deepcopy(self.cookies[0])
@@ -76,7 +68,7 @@ class Scraper():
                 headers['cookie'] = cookie
                 # headers['cookie'] = random.choice(self.cookies)
                 response = requests.get(url ,headers = headers)
-                response = self.antiDetect(response,url)
+                response = self.antiDetect(response,url,'home')
 
                 html = bs(response.content,'html.parser')
                 # print(html.prettify())
@@ -87,14 +79,9 @@ class Scraper():
                 
                 # print('success:',suceed,' url update:',update, ' crash:',crash,' num of userlinks:',len(userlinks),end='\r')
                 
-                # if len(userlinks) != 0 and len(userlinks)<20:
-                #     # open('a.html','w').write(html.prettify())
-                #     print('response has errors')
-                #     return 
                 filtered = requests.get(f'{self.dburl}/checkExist',json = {'data':userlinks}).json()
-                # print(filtered)
                 for userlink in filtered:
-                    userlinkPool.put('https://www.xiaohongshu.com'+userlink)
+                    userlinkPool.put('https://www.xiaohongshu.com/user/profile/'+userlink)
                 if len(filtered)!=0:
                     requests.post(f'{self.dburl}/addlog',json ={'id':'users','data':[userlink.split('/')[-1] for userlink in filtered]})
 
@@ -108,7 +95,6 @@ class Scraper():
                         cookie = self.updateCookie(url)
                     else:
                         cookie = random.choice(self.cookies)
-                    # print(cookie)
                     update += 1  
                     continue 
                 suceed +=1 
@@ -129,13 +115,14 @@ class Scraper():
             userlink = userlinkPool.get()
             try:
                 response = requests.get(userlink,headers = headers)
-                response = self.antiDetect(response,userlink)
+                response = self.antiDetect(response,userlink,'user')
                 # self.headers = response.headers
                 soup = bs(response.content,'html.parser')
                 # open('a.html','w').write(soup.prettify())
                 userInfo = getUser(soup)   
                 linklist =soup.findAll('a','title')
-                if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like'] and len(linklist)>=10:
+                # if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like'] and len(linklist)>=10:
+                if 'W' in userInfo['follow'] and 'W' in userInfo['like'] and len(linklist)>=10:
                     userInfo['longID'] = userlink.split('/')[-1]
                     # userInfo.pop('like')
                     # userInfo.pop('follow')
@@ -162,14 +149,13 @@ class Scraper():
             # headers['cookie'] = cookie
             userInfo,links = userInfoPipline.get().values()
             idx = 0
-            userInfo['posts'] = []
             # cookie = random.choice(self.cookies)
             posts=[]
             for link in links:
                 try:
                     url = 'https://www.xiaohongshu.com'+link
                     response = requests.get(url,headers = headers)
-                    response = self.antiDetect(response,url)
+                    response = self.antiDetect(response,url,'post')
 
                     soup = bs(response.content.decode('utf-8'),'html.parser')
                     idx,post= grabing(soup,self,userInfo,idx)
@@ -185,16 +171,12 @@ class Scraper():
                         continue
                 post['url'] = url
                 posts.append(post)
-                # id = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':post}).content.decode("utf-8")
-                # userInfo['posts'].append(id)
             if len(posts)!=0:
-                res = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts})
                 try:
-                    userInfo['posts'] = res.json()
+                    userInfo['posts'] = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts}).json()
                 except:
-                   print(res.content)
-                requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})   
-            # break      
+                  userInfo['posts'] = []
+                requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})       
 
 app = Flask(__name__)
 

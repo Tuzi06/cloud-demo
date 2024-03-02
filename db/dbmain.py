@@ -1,7 +1,4 @@
 # The main file that cloud server part code will interact with
-
-from concurrent.futures import thread
-
 from flask import Flask,request
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
@@ -39,13 +36,9 @@ def count():
 
 @app.route('/checkExist')
 def checkExist():
-    ids= request.get_json()['data']
-    # res = []
-    # for id in ids:
-    #     if list(users.find({'longID':id.split('/')[-1]})) == []:
-    #         res.append(id)
-    # return res
-    return [id for id in ids if list(users.aggregate([{'$match':{'longID':id.split('/')[-1]}},{'$project':{'_id':1}}]))==[]]
+    ids = request.get_json()['data']
+    ids = [id.split('/')[-1] for id in ids]
+    return list(set(ids)-set(users.find({'longID':{'$in':ids}}).distinct('longID')))
 
 @app.route('/addlog',methods = ['POST']) 
 def add():
@@ -66,8 +59,7 @@ def insert():
         if res['id']=='posts':
             return [str(id) for id in posts.insert_many(data).inserted_ids]
         elif res['id']=='users':
-            longID = data.pop('longID')
-            users.replace_one({'longID':longID},data)
+            users.replace_one({'longID':data['longID']},data)
             return []
     except pymongo.errors.OperationFailure:
         return []

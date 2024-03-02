@@ -18,7 +18,7 @@ def findNoteContent(soup,content):
     content['text'] = text.find('span').text
     content['tag'] = soup.find('meta',{'name':'keywords'})['content'].split(', ')
 
-def findComment(data,content):
+def findComment(data,content,header):
     comments = []
     for d in data:
         comment = {d['user_info']['nickname']:d['content']}
@@ -27,10 +27,36 @@ def findComment(data,content):
             replys = d['sub_comments']
             for reply in replys:
                 r[reply['user_info']['nickname']] = reply['content']
+                
+                # uncomment if you want more replys under each comment
+                if d['sub_comment_has_more'] == True:
+                    r.update(findMoreReply(d,header))
+
             comment['replys'] = r
         comments.append(comment)
+
+    content['comments'] = comments
+
+def findMoreReply(d,header):
+    noteid = d['note_id']
+    rootCommentId = d['id']
+    num = 10 # num of more replys
+    cursor = d['sub_comment_cursor']
+
+    url = f'https://edith.xiaohongshu.com/api/sns/web/v2/comment/sub/page?note_id={noteid}&root_comment_id={rootCommentId}&num={num}&cursor={cursor}&image_formats=jpg,webp,avif'
     
-    content['comments'] = comments 
+    headers = header['htmlHeaders']
+    headers['cookie'] = header['cookie']
+
+    resData = requests.get(url,headers = headers).json()
+    try:
+        replys = resData['data']['comments']
+    except:
+        replys = []
+    r = dict()
+    for reply in replys:
+        r[reply['user_info']['nickname']] = reply['content']
+    return r
     
 def findPicture(soup,content,idx,id):
     try:
@@ -41,9 +67,11 @@ def findPicture(soup,content,idx,id):
         for url in picUrls:
             content['pictures'][f"{id}-{idx}"] = url['infoList'][1]['url']
             idx+=1
+        content['is_video'] = False
     except:
         url = soup.find('div',class_='render-ssr-image player-container')['style'].split('(')[1][:-1]
         content['pictures'] = {f"{id}-{idx}":url}
+        content['is_video'] = True
     return idx
 
 
@@ -55,11 +83,10 @@ def grabing(soup,self,user,idx):
     header = copy.deepcopy(self.headers['htmlHeaders'])
     header['Cookie'] = random.choice(self.cookies)
     response= requests.get(url,headers = header)
-    # print(response.json())
     try:
         commentData = response.json()['data']['comments']
     except:
         commentData = []
-    findComment(commentData,post)
+    findComment(commentData,post,self.headers)
     idx = findPicture(soup,post,idx,user['id'])
     return idx,post
