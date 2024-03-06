@@ -28,11 +28,14 @@ class Scraper():
         return response
     
     def updateCookie(self,url):
-        response= requests.get(url,headers = self.headers['htmlHeaders'])
-        newAd = response.headers['Set-Cookie'].split('; ')[0]
-        newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
-        newCookie = '; '.join(newCookie)
-        return newCookie
+        try:
+            response= requests.get(url,headers = self.headers['htmlHeaders'])
+            newAd = response.headers['Set-Cookie'].split('; ')[0]
+            newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
+            newCookie = '; '.join(newCookie)
+            return newCookie
+        except:
+            random.choice(self.cookies)
     
     def homePageScraper(self,userlinkPool):
         start = time.perf_counter()
@@ -52,13 +55,14 @@ class Scraper():
         lasttime = start
         lastprogress = 0
         userlinks = []
+        filtered = []
         while True:
             progress= int(requests.get(f'{self.dburl}/count').content.decode("utf-8"))
             current = time.perf_counter()
 
             percent = ("{0:." + str(2) + "f}").format(100 * (progress/ float(int(num)+requestnum)))
             speed =  ("{0:." + str(2) + "f}").format((progress-lastprogress)/(current-lasttime))
-            print(f'\r progress: {percent}% Completed, speed: {speed} posts per second, last batch size:{len(userlinks)}    ', end = '\r')
+            print(f'\r progress: {percent}% Completed, speed: {speed} p/s, batch size:{len(userlinks)}, filtered:{len(filtered)}  ', end = '\r')
             lasttime = current
             lastprogress = progress
             if userlinkPool.qsize()>self.userScraper * 2:
@@ -71,10 +75,6 @@ class Scraper():
                 response = self.antiDetect(response,url,'home')
 
                 html = bs(response.content,'html.parser')
-                # print(html.prettify())
-                # open('a.html','w').write(html.prettify())
-                # time.sleep(5)
-                # return 
                 userlinks =[title['href']for title in html.findAll('a',class_='author')]
                 
                 # print('success:',suceed,' url update:',update, ' crash:',crash,' num of userlinks:',len(userlinks),end='\r')
@@ -87,11 +87,13 @@ class Scraper():
 
                 if progress>=int(num)+requestnum:
                     end = time.perf_counter()
-                    print('\n Time is %4f hours'%((end - start)/3600)) 
+                    print('\n Time is %4f hours'%((end - start)/3600))
+                    with userlinkPool.mutex:
+                        userlinkPool.clear()
                     break 
 
                 if len(userlinks) == 0:
-                    if int(progress)%2!=0:
+                    if (int(progress)+random.randint(0,5))%5!=0:
                         cookie = self.updateCookie(url)
                     else:
                         cookie = random.choice(self.cookies)
@@ -99,9 +101,9 @@ class Scraper():
                     continue 
                 suceed +=1 
             except:
-                traceback.print_exc()
+                # traceback.print_exc()
                 crash+=1
-                return
+                # return
                 continue
 
     def userPageScraper(self,userlinkPool,userInfoPipline): 
@@ -122,7 +124,7 @@ class Scraper():
                 userInfo = getUser(soup)   
                 linklist =soup.findAll('a','title')
                 # if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like'] and len(linklist)>=10:
-                if 'W' in userInfo['follow'] and 'W' in userInfo['like'] and len(linklist)>=10:
+                if 'W' in userInfo['follow'] and len(linklist)>=10:
                     userInfo['longID'] = userlink.split('/')[-1]
                     # userInfo.pop('like')
                     # userInfo.pop('follow')
@@ -159,18 +161,13 @@ class Scraper():
 
                     soup = bs(response.content.decode('utf-8'),'html.parser')
                     idx,post= grabing(soup,self,userInfo,idx)
-                    # return 
+                    post['url'] = url
+                    posts.append(post)
                 except:
                     # traceback.print_exc()
                     # return
                     # print('fail on post')
-                    try:
-                        cookie = self.updateCookie(url)
-                        continue
-                    except:
-                        continue
-                post['url'] = url
-                posts.append(post)
+                    cookie = self.updateCookie(url)
             if len(posts)!=0:
                 try:
                     userInfo['posts'] = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts}).json()
@@ -189,7 +186,6 @@ def start():
     global userInfoPipline,userlinkPool,posts,scraper,processes
     userInfoPipline =Manager().Queue()
     userlinkPool =Manager().Queue()
-    # print(userInfoPipline.qsize(),userlinkPool.qsize())
     posts = Manager().list()
     userScrapers,postScrapers,dburl,goal = request.get_json().values()
     scraper = Scraper(userScrapers,postScrapers,dburl,goal)
