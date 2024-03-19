@@ -18,7 +18,7 @@ def findNoteContent(soup,content):
     content['text'] = text.find('span').text
     content['tag'] = soup.find('meta',{'name':'keywords'})['content'].split(', ')
 
-def findComment(data,content,header):
+def findComment(data,content,header,cookie):
     comments = []
     for d in data:
         comment = {d['user_info']['nickname']:d['content']}
@@ -28,16 +28,16 @@ def findComment(data,content,header):
             for reply in replys:
                 r[reply['user_info']['nickname']] = reply['content']
                 
-                # uncomment if you want more replys under each comment
-                if d['sub_comment_has_more'] == True:
-                    r.update(findMoreReply(d,header))
+                # uncomment if you want more replys under each comment (this featue still not working perfectly)
+                # if d['sub_comment_has_more'] == True:
+                #     r.update(findMoreReply(d,header,cookie))
 
             comment['replys'] = r
         comments.append(comment)
 
     content['comments'] = comments
 
-def findMoreReply(d,header):
+def findMoreReply(d,header,cookie):
     noteid = d['note_id']
     rootCommentId = d['id']
     num = 10 # num of more replys
@@ -46,7 +46,10 @@ def findMoreReply(d,header):
     url = f'https://edith.xiaohongshu.com/api/sns/web/v2/comment/sub/page?note_id={noteid}&root_comment_id={rootCommentId}&num={num}&cursor={cursor}&image_formats=jpg,webp,avif'
     
     headers = header['htmlHeaders']
-    headers['cookie'] = header['cookie']
+    if random.randint(0,1) == 0:
+        headers['cookie'] = header['cookie']
+    else:
+        headers['cookie'] = '; '.join(cookie.split('; ')[:1] + headers['cookie'].split('; ')[1:])
 
     resData = requests.get(url,headers = headers).json()
     try:
@@ -75,18 +78,20 @@ def findPicture(soup,content,idx,id):
     return idx
 
 
-def grabing(soup,self,user,idx):
+def grabing(soup,self,user,idx,cookie):
     post = dict()
     findNoteContent(soup,post)
+
     noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
     url = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?note_id='+noteId+'&cursor=&top_comment_id=&image_formats=jpg,webp,avif'
     header = copy.deepcopy(self.headers['htmlHeaders'])
-    header['Cookie'] = random.choice(self.cookies)
+    header['cookie'] =  cookie
     response= requests.get(url,headers = header)
     try:
         commentData = response.json()['data']['comments']
     except:
         commentData = []
-    findComment(commentData,post,self.headers)
+    findComment(commentData,post,self.headers,cookie)
+
     idx = findPicture(soup,post,idx,user['id'])
     return idx,post

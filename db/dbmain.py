@@ -2,7 +2,7 @@
 from flask import Flask,request
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-import pymongo,time,multiprocessing
+import pymongo
 
 
 app = Flask(__name__)
