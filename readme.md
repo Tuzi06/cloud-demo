@@ -122,7 +122,6 @@ Notice: make sure you have the latest version of webdriver that correspond your 
 
 ## Todos
 * Find a way to get the around the recapatcha things and ip block if setting are high enough.
-* Scrape more replys, something like reply of reply of reply?
+* Scrape more replys, something like reply of reply of reply? (probably no way in nest form, but a list. Also it needs some ways of login credential, which cannot be randomized (may reason of crash in current stage, needs find a way to deal with it firstly)
 * Experience and test the realtionship between performance and better hardwares( a higher bendwidth and a higher tier mongodb servvice)
-* Think about a new way to represent scraping speed ( current one seems inaccurate)
 * rewrite the checkExist function in dbmain.py (should have a faster way to check the log)
