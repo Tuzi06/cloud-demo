@@ -29,8 +29,8 @@ def findComment(data,content,header,cookie):
                 r[reply['user_info']['nickname']] = reply['content']
                 
                 # uncomment if you want more replys under each comment (this featue still not working perfectly)
-                # if d['sub_comment_has_more'] == True:
-                #     r.update(findMoreReply(d,header,cookie))
+                if d['sub_comment_has_more'] == True:
+                    r.update(findMoreReply(d,header,cookie))
 
             comment['replys'] = r
         comments.append(comment)
@@ -76,7 +76,6 @@ def findPicture(soup,content,idx,id):
         content['pictures'] = {f"{id}-{idx}":url}
         content['is_video'] = True
     return idx
-
 
 def grabing(soup,self,user,idx,cookie):
     post = dict()
