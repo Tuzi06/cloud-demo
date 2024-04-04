@@ -1,4 +1,4 @@
-import copy,json,requests,traceback,random
+import copy,json,requests,traceback,random,string
 
 def getUser(soup):
     user = dict() #用于存储信息的组建，使用dict以便后续写入json文档中
@@ -85,7 +85,11 @@ def grabing(soup,self,user,idx,cookie):
     noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
     url = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?note_id='+noteId+'&cursor=&top_comment_id=&image_formats=jpg,webp,avif'
     header = copy.deepcopy(self.headers['htmlHeaders'])
-    header['cookie'] =  cookie
+    cookie = self.headers['cookie']
+    newCookie = cookie.split('; ')
+    newCookie[2] = 'webId='+''.join([random.choice(string.ascii_lowercase + string.digits)for i in range(32)])
+    newCookie= '; '.join(newCookie)
+    header['cookie'] = newCookie
     response= requests.get(url,headers = header)
     try:
         commentData = response.json()['data']['comments']
