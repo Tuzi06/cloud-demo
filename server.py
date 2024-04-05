@@ -56,9 +56,9 @@ class Scraper():
                 cookie = cookies.pop(random.randint(0,len(cookies)-1))
             except:
                 continue
-            if userInfoPipline.qsize() >= math.floor(self.scraperNum / 5):
-                self.postPageScraper(userInfoPipline,cookie)
-            elif userlinkPool.qsize() >= math.floor(self.scraperNum) / 10:
+            if userInfoPipline.qsize() >= math.floor(self.scraperNum / 5)+1:
+                self.postPageScraper(userInfoPipline)
+            elif userlinkPool.qsize() >= math.floor(self.scraperNum) / 10+1:
                 self.userPageScraper(userlinkPool,userInfoPipline)
             else:
                 res = self.homePageScraper(userlinkPool,cookie)
@@ -124,8 +124,8 @@ class Scraper():
             soup = bs(response.content,'html.parser')
             userInfo = getUser(soup)   
             linklist =soup.findAll('a','title')
-            # if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like'] and len(linklist)>=10:
-            if 'W' in userInfo['follow'] and len(linklist)>=10:
+            if ('W' in userInfo['follow'] or 'K' in userInfo['follow']) and 'W' in userInfo['like'] and len(linklist)>=10:
+            # if 'W' in userInfo['follow'] and len(linklist)>=10:
                 userInfo['longID'] = userlink.split('/')[-1]
                 # userInfo.pop('like')
                 # userInfo.pop('follow')
@@ -135,10 +135,11 @@ class Scraper():
         except:
             # print(response.headers)
             # traceback.print_exc()
+            # print(userlink)
             # print('fail on users')      
             return      
             
-    def postPageScraper(self,userInfoPipline,cookie):
+    def postPageScraper(self,userInfoPipline):
         if userInfoPipline.empty():
             return 
         headers = deepcopy(self.headers['htmlHeaders'])
@@ -152,14 +153,14 @@ class Scraper():
                 response = self.antiDetect(response,url,'post')
 
                 soup = bs(response.content.decode('utf-8'),'html.parser')
-                idx,post= grabing(soup,self,userInfo,idx,cookie)
+                idx,post= grabing(soup,self,userInfo,idx)
                 post['url'] = url
                 posts.append(post)
             except:
-                return
                 # traceback.print_exc()
-                # return
+                # print(link)
                 # print('fail on post')
+                return
             if len(posts)!=0:
                 try:
                     userInfo['posts'] = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts}).json()
@@ -185,7 +186,7 @@ def run():
 
     for _ in range(scraper.scraperNum):
         Process(target = scraper.manager,args=[userlinkPool,userInfoPipline,state,cookies]).start()
-        time.sleep(5)
+        time.sleep(1)
     return 'started'
 
 @app.route('/poolState')

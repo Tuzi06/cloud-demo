@@ -77,7 +77,7 @@ def findPicture(soup,content,idx,id):
         content['is_video'] = True
     return idx
 
-def grabing(soup,self,user,idx,cookie):
+def grabing(soup,self,user,idx):
     post = dict()
     findNoteContent(soup,post)
 
