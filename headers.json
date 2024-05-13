@@ -1,18 +1,17 @@
 {
     "htmlHeaders": {
-        "authority": "www.xiaohongshu.com",
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
-        "cache-control": "no-cache",
-        "pragma": "no-cache",
-        "sec-ch-ua": "\"Not A(Brand\";v=\"99\", \"Google Chrome\";v=\"121\", \"Chromium\";v=\"121\"",
+        "cache-control": "max-age=0",
+        "sec-ch-ua": "\"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": "\"macOS\"",
         "sec-fetch-dest": "document",
         "sec-fetch-mode": "navigate",
-        "sec-fetch-site": "none",
+        "sec-fetch-site": "same-origin",
         "sec-fetch-user": "?1",
         "upgrade-insecure-requests": "1",
-        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
     },
-    "cookie":"abRequestId=6cb1ec56-779e-568e-bdf7-b87037699d68; a1=18cd7fea021brvkco87lhltzh5f8g6cx6bpo22akj30000313848; webId=529f96e525dec4769e99e9f75b35abe0; gid=yYSfWid0WdKiyYSfWid08DJ0JyDFhTSlYW1xUTV19ux2ilq8YkKSCJ888qyqY4Y8WjJqKJjJ; cache_feeds=[]; web_session=0400697918e7f1e4f6f55259cc374b5abf39e7; websectiga=cffd9dcea65962b05ab048ac76962acee933d26157113bb213105a116241fa6c; sec_poison_id=50041bf3-1699-451f-8dea-448cc3931cd5; webBuild=4.8.0; xsecappid=xhs-pc-web; unread={%22ub%22:%2266050ef5000000000d00c157%22%2C%22ue%22:%226601bc040000000014004ba7%22%2C%22uc%22:33}"}
+    "cookie": "abRequestId=6cb1ec56-779e-568e-bdf7-b87037699d68; a1=18cd7fea021brvkco87lhltzh5f8g6cx6bpo22akj30000313848; webId=529f96e525dec4769e99e9f75b35abe0; gid=yYSfWid0WdKiyYSfWid08DJ0JyDFhTSlYW1xUTV19ux2ilq8YkKSCJ888qyqY4Y8WjJqKJjJ; cache_feeds=[]; xsecappid=xhs-pc-web; web_session=0400697918e7f1e4f6f5b3ea20344b649b4527; webBuild=4.11.0; unread={%22ub%22:%2266155557000000000401a778%22%2C%22ue%22:%226613be23000000001b00a5df%22%2C%22uc%22:30}; websectiga=82e85efc5500b609ac1166aaf086ff8aa4261153a448ef0be5b17417e4512f28; sec_poison_id=84cf6adc-65f1-48a9-86a6-6b7df8c7dc5b"
+}

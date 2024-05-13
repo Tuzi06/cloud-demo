@@ -47,14 +47,18 @@ def findMoreReply(d,header,cookie):
     
     headers = header['htmlHeaders']
     if random.randint(0,1) == 0:
-        headers['cookie'] = header['cookie']
+        headers['cookie'] = cookie
     else:
-        headers['cookie'] = '; '.join(cookie.split('; ')[:1] + headers['cookie'].split('; ')[1:])
+        newCookie = cookie.split('; ')
+        newCookie[2] = 'webId='+''.join([random.choice(string.ascii_lowercase + string.digits)for i in range(32)])
+        newCookie= '; '.join(newCookie)
+        headers['cookie'] = newCookie
 
     resData = requests.get(url,headers = headers).json()
     try:
         replys = resData['data']['comments']
     except:
+        print(resData)
         replys = []
     r = dict()
     for reply in replys:
@@ -62,23 +66,28 @@ def findMoreReply(d,header,cookie):
     return r
     
 def findPicture(soup,content,idx,id):
-    try:
-        data = json.loads(soup.findAll('script')[-1].text.split('=')[1].replace('undefined','null')) 
-        picUrls = data['note']['noteDetailMap'][data['note']['firstNoteId']]['note']['imageList']
-       
-        content['pictures'] = {}
-        for url in picUrls:
-            content['pictures'][f"{id}-{idx}"] = url['infoList'][1]['url']
-            idx+=1
-        content['is_video'] = False
-    except:
-        url = soup.find('div',class_='render-ssr-image player-container')['style'].split('(')[1][:-1]
-        content['pictures'] = {f"{id}-{idx}":url}
-        content['is_video'] = True
+    data = json.loads(''.join(soup.findAll('script')[-1].text.split('=')[1:]).replace('undefined','null')) 
+    data = data['note']['noteDetailMap'][data['note']['firstNoteId']]['note']
+    picUrls = data['imageList']
+
+    content['pictures'] = {}
+    for url in picUrls:
+        content['pictures'][f"{id}-{idx}"] = url['infoList'][1]['url']
+        idx+=1
+    content['is_video'] = False if data['type'] != 'video' else True
+    
     return idx
 
 def grabing(soup,self,user,idx):
     post = dict()
+    idx = findPicture(soup,post,idx,user['id'])
+
+    # comment if you want video contents included
+    # if 'is_video' in post and post['is_video'] == True:
+    #     return max(idx-1,0), None
+    # elif 'is_video' not in post:
+    #     return idx, None
+    
     findNoteContent(soup,post)
 
     noteId = soup.find('meta',{'name':'og:url'})['content'].split('/')[-1]
@@ -96,5 +105,4 @@ def grabing(soup,self,user,idx):
         commentData = []
     findComment(commentData,post,self.headers,cookie)
 
-    idx = findPicture(soup,post,idx,user['id'])
     return idx,post

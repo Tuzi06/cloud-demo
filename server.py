@@ -56,9 +56,9 @@ class Scraper():
                 cookie = cookies.pop(random.randint(0,len(cookies)-1))
             except:
                 continue
-            if userInfoPipline.qsize() >= math.floor(self.scraperNum / 5)+1:
-                self.postPageScraper(userInfoPipline)
-            elif userlinkPool.qsize() >= math.floor(self.scraperNum) / 10+1:
+            if userInfoPipline.qsize() >= 1:
+                self.postPageScraper(userInfoPipline,cookie)
+            elif userlinkPool.qsize() >= 1:
                 self.userPageScraper(userlinkPool,userInfoPipline)
             else:
                 res = self.homePageScraper(userlinkPool,cookie)
@@ -68,26 +68,6 @@ class Scraper():
                         cookies.append(cookie)
                         cookie = self.updateCookie("https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend")
             cookies.append(cookie) 
-
-    def antiDetect(self,response,url,stage):
-        if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
-            # time.sleep(2)
-            if response.status_code != 200:
-                print(response.status_code,'  ',stage)
-            headers=deepcopy(self.headers['htmlHeaders'])
-            headers['cookie'] = random.choice(self.cookies)
-            response = requests.get(url,headers = headers)
-        return response
-    
-    def updateCookie(self,url):
-        try:
-            response= requests.get(url,headers = self.headers['htmlHeaders'])
-            newAd = response.headers['Set-Cookie'].split('; ')[0]
-            newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
-            newCookie = '; '.join(newCookie)
-            return newCookie
-        except:
-            return random.choice(self.cookies)
     
     def homePageScraper(self,userlinkPool,cookie):
         url = "https://www.xiaohongshu.com/explore?channel_id=homefeed_recommend"
@@ -133,16 +113,15 @@ class Scraper():
                 userInfoPipline.put({'userInfo':userInfo,'links':[link['href'] for link in linklist[:10]]})
             # return 
         except:
-            # print(response.headers)
             # traceback.print_exc()
-            # print(userlink)
             # print('fail on users')      
             return      
             
-    def postPageScraper(self,userInfoPipline):
+    def postPageScraper(self,userInfoPipline,cookie):
         if userInfoPipline.empty():
             return 
         headers = deepcopy(self.headers['htmlHeaders'])
+        headers['cookie'] = cookie
         userInfo,links = userInfoPipline.get().values()
         idx = 0
         posts=[]
@@ -154,20 +133,44 @@ class Scraper():
 
                 soup = bs(response.content.decode('utf-8'),'html.parser')
                 idx,post= grabing(soup,self,userInfo,idx)
+                if not post:
+                    continue
                 post['url'] = url
                 posts.append(post)
             except:
-                # traceback.print_exc()
-                # print(link)
+                traceback.print_exc()
                 # print('fail on post')
-                return
-            if len(posts)!=0:
-                try:
-                    userInfo['posts'] = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts}).json()
-                except:
-                  userInfo['posts'] = []
-                requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})       
+                continue
+                # return
+        if len(posts)!=0:
+            try:
+                userInfo['posts'] = requests.post(f"{self.dburl}/insert",json = {'id':'posts','data':posts}).json()
+            except:
+                userInfo['posts'] = []
+            
+            requests.post(f"{self.dburl}/insert",json = {'id':'users','data':userInfo})       
 
+
+    def antiDetect(self,response,url,stage):
+        if 'https://www.xiaohongshu.com/website-login/error?redirectPath=' in response.url or response.status_code != 200:
+            # time.sleep(2)
+            if response.status_code != 200:
+                print(response.status_code,'  ',stage)
+            headers=deepcopy(self.headers['htmlHeaders'])
+            headers['cookie'] = random.choice(self.cookies)
+            response = requests.get(url,headers = headers)
+        return response
+    
+    def updateCookie(self,url):
+        try:
+            response= requests.get(url,headers = self.headers['htmlHeaders'])
+            newAd = response.headers['Set-Cookie'].split('; ')[0]
+            newCookie = [newAd] + self.headers['cookie'].split('; ')[1:]
+            newCookie = '; '.join(newCookie)
+            return newCookie
+        except:
+            return random.choice(self.cookies)
+        
 app = Flask(__name__)
 
 import logging
