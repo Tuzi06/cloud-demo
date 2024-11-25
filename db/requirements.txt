@@ -1,4 +1,0 @@
-Flask
-gunicorn
-requests
-bs4
