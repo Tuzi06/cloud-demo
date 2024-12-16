@@ -1,7 +1,7 @@
 # The Scraper 2.5  (Not finish yet, information below may not fit how code is working)
 This project is to scrape post contents on [小红书](https://www.xiaohongshu.com/explore) a chinese version of instagram. The entire process is devided to Scraping Server (with mutliple stages and parallel processing for each stage to maximize performance) and Database Server, for distributing the bots or workload to different machines and places( for example: different region on aws) to enhance the reliability and overall performance.
 
-## Notice/ Something Worth to Know
+## Notice / Something Worth to Know
 Currently the website sends a lot short videos like what you may see on ticktok (some of them are actually the same video that be posted onto both platform). Although these content has all the things for this bot script to run flawlessly, be aware that those contents can be useless for training LLVM and other content related studies. Also, users that pass the filter may run by a company or some professional writers that post ads for living. So make sure you do your study before you run the script for production or scrape a large quantity of posts.
 
 ## Installation
