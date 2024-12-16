@@ -71,7 +71,7 @@ To start scraping processes, a request with json:
 ```
 needs to sent to "/start" route. 
 
-###Notice: 
+### Notice: 
 
 The ratio between number of userScrapers and postScrapers should be at least 1:3, and are recommand in 1:2 for a consistent run. As each post may take about 2 to 2.5 seconds to scrape, the overall scraping speed for script can be defined as 1/2 of postScrapers, and peak perfromance will be the internet bendwidth (the difference between 60 postScrapers and 100 postScrapers are minimal, at least this is the result when I tested).Also, a vpn or some proxy service are recommand.
 
