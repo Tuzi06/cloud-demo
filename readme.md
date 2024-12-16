@@ -90,7 +90,7 @@ for cookie in cookies:
     html = bs(requests.get(url,headers=header).content,'html.parser')
     print(len(html.findAll('a',class_='author')))
 ```
-if all the results are 0 (cookies may expires), we re-scrape the 20 new cookies using selenium as follows:
+If all the results are 0 (cookies may expires), we re-scrape the 20 new cookies using selenium as follows:
 ```python
 from selenium.webdriver import Chrome,ChromeOptions
 from selenium.webdriver.chrome.service import Service
